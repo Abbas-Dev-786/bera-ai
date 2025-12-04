@@ -1,11 +1,10 @@
-import { Shield, AlertTriangle, CheckCircle2, Search } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { ChatView } from '@/components/chat/ChatView';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 
 const RECENT_AUDITS = [
   {
@@ -31,20 +30,14 @@ const RECENT_AUDITS = [
   },
 ];
 
-export default function SecurityPage() {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-success';
-    if (score >= 60) return 'text-warning';
-    return 'text-destructive';
-  };
-
+export default function AuditPage() {
   const getScoreVariant = (score: number) => {
     if (score >= 80) return 'default';
     if (score >= 60) return 'secondary';
     return 'destructive';
   };
 
-  const SecuritySidePanel = (
+  const AuditSidePanel = (
     <div className="p-4 space-y-4">
       <Card>
         <CardHeader className="p-4 pb-2">
@@ -86,19 +79,19 @@ export default function SecurityPage() {
   return (
     <MainLayout>
       <ChatView 
-        title="Security Center"
-        subtitle="Audit smart contracts and detect vulnerabilities"
+        title="Smart Contract Audit"
+        subtitle="Analyze code for vulnerabilities"
         placeholder="Example: Audit 0x..."
         initialItems={[{
           type: 'message',
           data: {
-            id: 'welcome-security',
+            id: 'welcome-audit',
             role: 'assistant',
             content: 'I can help you audit smart contracts for security vulnerabilities. Paste the contract code or address, and I will analyze it for you.',
             timestamp: new Date()
           }
         }]}
-        sidePanel={SecuritySidePanel}
+        sidePanel={AuditSidePanel}
       />
     </MainLayout>
   );

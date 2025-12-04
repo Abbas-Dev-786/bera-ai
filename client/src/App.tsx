@@ -11,6 +11,15 @@ import DocsPage from "./pages/DocsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
+import ResearchPage from "./pages/ResearchPage";
+import GeneratePage from "./pages/GeneratePage";
+import AuditPage from "./pages/AuditPage";
+import SwapPage from "./pages/SwapPage";
+import TransferPage from "./pages/TransferPage";
+import StakePage from "./pages/StakePage";
+import DeployPage from "./pages/DeployPage";
+import InteractPage from "./pages/InteractPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -21,9 +30,17 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/research" element={<ResearchPage />} />
+          <Route path="/generate" element={<GeneratePage />} />
+          <Route path="/audit" element={<AuditPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/contracts" element={<ContractsPage />} />
           <Route path="/security" element={<SecurityPage />} />
+          <Route path="/swap" element={<SwapPage />} />
+          <Route path="/transfer" element={<TransferPage />} />
+          <Route path="/stake" element={<StakePage />} />
+          <Route path="/deploy" element={<DeployPage />} />
+          <Route path="/interact" element={<InteractPage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />

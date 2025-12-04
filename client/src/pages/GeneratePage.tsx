@@ -33,11 +33,11 @@ const SAMPLE_CONTRACTS = [
   },
 ];
 
-export default function ContractsPage() {
-  const ContractsSidePanel = (
+export default function GeneratePage() {
+  const GenerateSidePanel = (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Your Contracts</h2>
+        <h2 className="text-lg font-semibold">Generated Contracts</h2>
         <Button size="sm" variant="outline">
           <Plus className="h-4 w-4" />
         </Button>
@@ -94,19 +94,19 @@ export default function ContractsPage() {
   return (
     <MainLayout>
       <ChatView 
-        title="Smart Contracts"
-        subtitle="Generate, deploy, and manage smart contracts"
+        title="Generate Smart Contracts"
+        subtitle="Create custom smart contracts with AI"
         placeholder="Example: Generate an ERC20 token named SuperToken..."
         initialItems={[{
           type: 'message',
           data: {
-            id: 'welcome-contracts',
+            id: 'welcome-generate',
             role: 'assistant',
             content: 'I can help you create smart contracts. Describe what you need, and I will generate the Solidity code for you.',
             timestamp: new Date()
           }
         }]}
-        sidePanel={ContractsSidePanel}
+        sidePanel={GenerateSidePanel}
       />
     </MainLayout>
   );

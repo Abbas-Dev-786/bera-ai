@@ -75,13 +75,39 @@ interface QuickActionsProps {
   onSelect: (prompt: string) => void;
 }
 
+import { useNavigate } from 'react-router-dom';
+
 export function QuickActions({ onSelect }: QuickActionsProps) {
+  const navigate = useNavigate();
+
+  const handleAction = (action: QuickAction) => {
+    if (action.label === 'Swap') {
+      navigate('/swap');
+    } else if (action.label === 'Transfer') {
+      navigate('/transfer');
+    } else if (action.label === 'Stake') {
+      navigate('/stake');
+    } else if (action.label === 'Deploy') {
+      navigate('/deploy');
+    } else if (action.label === 'Interact') {
+      navigate('/interact');
+    } else if (action.label === 'Generate') {
+      navigate('/generate');
+    } else if (action.label === 'Audit') {
+      navigate('/audit');
+    } else if (action.label === 'Research') {
+      navigate('/research');
+    } else {
+      onSelect(action.prompt);
+    }
+  };
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 px-2 sm:px-4 w-full max-w-2xl">
       {QUICK_ACTIONS.map((action) => (
         <button
           key={action.label}
-          onClick={() => onSelect(action.prompt)}
+          onClick={() => handleAction(action)}
           className={cn(
             "group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-xl p-3 sm:p-4",
             "bg-card/50 border border-border/50 transition-all duration-200",

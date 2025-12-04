@@ -13,6 +13,12 @@ import {
   BookOpen,
   Menu,
   X,
+  Search,
+ ArrowRightLeft,
+ Send,
+ Coins,
+ Rocket,
+ Code2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,9 +34,15 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { icon: MessageSquare, label: 'Chat', path: '/' },
+  { icon: Search, label: 'Research', path: '/research' },
+  { icon: FileCode, label: 'Generate', path: '/generate' },
+  { icon: Shield, label: 'Audit', path: '/audit' },
+  { icon: ArrowRightLeft, label: 'Swap', path: '/swap' },
+  { icon: Send, label: 'Transfer', path: '/transfer' },
+  { icon: Coins, label: 'Stake', path: '/stake' },
+  { icon: Rocket, label: 'Deploy', path: '/deploy' },
+  { icon: Code2, label: 'Interact', path: '/interact' },
   { icon: History, label: 'History', path: '/history' },
-  { icon: FileCode, label: 'Contracts', path: '/contracts' },
-  { icon: Shield, label: 'Security', path: '/security' },
   { icon: BookOpen, label: 'Docs', path: '/docs' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
