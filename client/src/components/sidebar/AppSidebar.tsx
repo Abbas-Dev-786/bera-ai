@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -56,8 +57,17 @@ function SidebarContent({ collapsed = false, onNavigate }: { collapsed?: boolean
         )}
       </div>
 
+      {/* Connect Wallet */}
+      <div className={cn("p-3", collapsed ? "flex justify-center" : "")}>
+        <ConnectButton 
+          showBalance={false} 
+          accountStatus={collapsed ? "avatar" : "full"}
+          chainStatus="icon"
+        />
+      </div>
+
       {/* New Chat Button */}
-      <div className="p-3">
+      <div className="px-3 pb-3">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

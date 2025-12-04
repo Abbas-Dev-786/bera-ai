@@ -1,11 +1,6 @@
 import axios from "axios";
 import { CHAINGPT_API_KEY, CHAINGPT_BASE } from "../config/index.js";
 
-/**
- * NOTE: Adapt endpoints and request bodies to the exact ChainGPT API spec.
- * The examples below show typical REST calls: /smart-contracts/generate and /smart-contracts/audit
- */
-
 const client = axios.create({
   baseURL: CHAINGPT_BASE,
   headers: {
@@ -27,28 +22,20 @@ export async function generateContractFromSpec(spec) {
       },
       { responseType: "json" }
     );
-
-    console.log("ChainGPT response:", res.data);
-    // Typical response: { contract: "pragma ...", abi: [...], bytecode: "..."}
     return res.data;
   } catch (error) {
     console.error("ChainGPT generateContractFromSpec error:", error.message);
-    if (error.response) {
-      throw new Error(
-        `ChainGPT API error: ${error.response.status} - ${error.response.data?.message || error.message}`
-      );
-    }
-    throw new Error(`Failed to generate contract: ${error.message}`);
+    throw error;
   }
 }
 
-export async function getTopicDetails(spec) {
+export async function getTopicDetails(question) {
   try {
     const res = await client.post(
       "/",
       {
         model: "general_assistant",
-        question: spec,
+        question: question,
         chatHistory: "on",
         // sdkUniqueId: "",
       },
@@ -60,28 +47,19 @@ export async function getTopicDetails(spec) {
     return res.data;
   } catch (error) {
     console.error("ChainGPT getTopicDetails error:", error.message);
-    if (error.response) {
-      throw new Error(
-        `ChainGPT API error: ${error.response.status} - ${error.response.data?.message || error.message}`
-      );
-    }
-    throw new Error(`Failed to get topic details: ${error.message}`);
+    throw error;
   }
 }
 
 export async function auditContract(source) {
   try {
-    // TODO: adapt to ChainGPT's auditor endpoint and expected shape
-    const res = await client.post("/smart-contracts/audit", { source });
+    // Assuming /audit-smart-contract based on naming convention, 
+    // if fails we might need to check docs again or use the general chatbot to audit.
+    const res = await client.post("/audit-smart-contract", { contract_code: source });
     return res.data;
   } catch (error) {
     console.error("ChainGPT auditContract error:", error.message);
-    if (error.response) {
-      throw new Error(
-        `ChainGPT API error: ${error.response.status} - ${error.response.data?.message || error.message}`
-      );
-    }
-    throw new Error(`Failed to audit contract: ${error.message}`);
+    throw error;
   }
 }
 
