@@ -69,6 +69,22 @@ export interface ChatResponse {
   action?: ActionData;
 }
 
+export interface GeneratedContract {
+  artifactId: string;
+  contract: string;
+  abi: unknown | null;
+  bytecode: string | null;
+  createdAt: string;
+}
+
+export interface ContractAudit {
+  auditId: string;
+  summary: string;
+  score: number | null;
+  report: unknown;
+  createdAt: string;
+}
+
 // Dummy responses for different query types
 const DUMMY_RESPONSES: Record<string, string> = {
   explain: `I'll explain this for you:
@@ -294,6 +310,56 @@ export async function sendChatMessage(
   return {
     message: response,
   };
+}
+
+/**
+ * Generate a Solidity contract from a natural-language spec.
+ * POST /api/contracts/generate
+ */
+export async function generateContract(
+  spec: string,
+  name?: string
+): Promise<GeneratedContract> {
+  const res = await fetch(`${API_BASE_URL}/api/contracts/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ spec, name }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Generate contract failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  return json.data as GeneratedContract;
+}
+
+/**
+ * Run an AI audit on a Solidity contract.
+ * POST /api/contracts/audit
+ */
+export async function runContractAudit(params: {
+  source: string;
+  artifactId?: string;
+}): Promise<ContractAudit> {
+  const res = await fetch(`${API_BASE_URL}/api/contracts/audit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Contract audit failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  return json.data as ContractAudit;
 }
 
 function getSuggestedActions(type: string): string[] {
