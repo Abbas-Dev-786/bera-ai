@@ -1,0 +1,59 @@
+Here's a properly formatted Solidity smart contract for fund deposits:  
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/// @title Simple Deposit Contract
+/// @notice Allows users to deposit and withdraw ETH; only the owner can withdraw all funds
+
+contract DepositFund {
+    address public owner;
+    mapping(address => uint) public balances;
+
+    event Deposited(address indexed user, uint amount);
+    event Withdrawn(address indexed user, uint amount);
+    event OwnerWithdrawn(address indexed owner, uint amount);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function deposit() external payable {
+        require(msg.value > 0, "Must deposit > 0");
+        balances[msg.sender] += msg.value;
+        emit Deposited(msg.sender, msg.value);
+    }
+
+    function withdraw(uint amount) external {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        balances[msg.sender] -= amount;
+        payable(msg.sender).transfer(amount);
+        emit Withdrawn(msg.sender, amount);
+    }
+
+    function ownerWithdrawAll() external onlyOwner {
+        uint contractBalance = address(this).balance;
+        require(contractBalance > 0, "No funds");
+        payable(owner).transfer(contractBalance);
+        emit OwnerWithdrawn(owner, contractBalance);
+    }
+
+    function getContractBalance() external view returns (uint) {
+        return address(this).balance;
+    }
+}
+
+
+Features
+Anyone can deposit and withdraw their own funds
+
+Only the owner (contract creator) can withdraw all funds at once
+
+All important actions emit events for logging
+
+Simple and readable code, suitable for audits and learning
