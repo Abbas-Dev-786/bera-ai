@@ -10,6 +10,7 @@ import { sendChatMessage, Message, ActionData as ApiActionData } from '@/lib/api
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { MobileMenuTrigger } from '@/components/sidebar/AppSidebar';
+import ConnectBtn from '@/components/ConnectBtn';
 
 interface ChatItem {
   type: 'message' | 'action';
@@ -108,9 +109,7 @@ export default function Index() {
             </Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-muted-foreground text-xs md:text-sm">
-              ChainGPT
-            </Badge>
+           <ConnectBtn/>
           </div>
         </header>
 
