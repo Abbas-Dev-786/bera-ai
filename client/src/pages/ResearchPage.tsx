@@ -67,6 +67,7 @@ export default function ResearchPage() {
           { label: "Market Trends", text: "What are the current DeFi trends?" },
           { label: "Token Analysis", text: "Analyze the tokenomics of DOT" }
         ]}
+        showToneSelector={true}
       />
     </MainLayout>
   );

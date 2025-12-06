@@ -22,6 +22,7 @@ interface ChatViewProps {
   placeholder?: string;
   sidePanel?: React.ReactNode;
   suggestions?: ChatSuggestion[];
+  showToneSelector?: boolean;
 }
 
 export function ChatView({ 
@@ -30,7 +31,8 @@ export function ChatView({
   initialItems = [], 
   placeholder = "Type a message...",
   sidePanel,
-  suggestions
+  suggestions,
+  showToneSelector = false
 }: ChatViewProps) {
   const [chatItems, setChatItems] = useState<ChatItem[]>(initialItems);
   const [isLoading, setIsLoading] = useState(false);
@@ -171,6 +173,7 @@ export function ChatView({
                 suggestions={suggestions}
                 selectedTone={selectedTone}
                 onToneChange={setSelectedTone}
+                showToneSelector={showToneSelector}
               />
             </div>
           </div>

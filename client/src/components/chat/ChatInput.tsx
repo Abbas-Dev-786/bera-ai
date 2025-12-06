@@ -16,9 +16,18 @@ interface ChatInputProps {
   suggestions?: ChatSuggestion[];
   selectedTone?: string;
   onToneChange?: (tone: string) => void;
+  showToneSelector?: boolean;
 }
 
-export function ChatInput({ onSend, disabled, placeholder, suggestions, selectedTone = "beginner", onToneChange }: ChatInputProps) {
+export function ChatInput({ 
+  onSend, 
+  disabled, 
+  placeholder, 
+  suggestions, 
+  selectedTone = "beginner", 
+  onToneChange,
+  showToneSelector = false
+}: ChatInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,30 +56,32 @@ export function ChatInput({ onSend, disabled, placeholder, suggestions, selected
     <div className="relative">
 
   {/* Tone Selection Bar */}
-      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground overflow-x-auto scrollbar-none pb-1">
-        <span className="flex items-center gap-1 shrink-0">
-          <Settings2 className="h-3 w-3" />
-          Tone:
-        </span>
-        {['Beginner', 'Technical', 'Concise', 'Expert'].map((tone) => {
-          const value = tone.toLowerCase();
-          const isSelected = selectedTone === value;
-          return (
-            <button
-              key={value}
-              onClick={() => onToneChange?.(value)}
-              className={cn(
-                "shrink-0 rounded-full px-3 py-1 transition-all border",
-                isSelected
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-card hover:bg-accent border-border text-muted-foreground"
-              )}
-            >
-              {tone}
-            </button>
-          );
-        })}
-      </div>
+      {showToneSelector && (
+        <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground overflow-x-auto scrollbar-none pb-1">
+          <span className="flex items-center gap-1 shrink-0">
+            <Settings2 className="h-3 w-3" />
+            Tone:
+          </span>
+          {['Beginner', 'Technical', 'Concise', 'Expert'].map((tone) => {
+            const value = tone.toLowerCase();
+            const isSelected = selectedTone === value;
+            return (
+              <button
+                key={value}
+                onClick={() => onToneChange?.(value)}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1 transition-all border",
+                  isSelected
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card hover:bg-accent border-border text-muted-foreground"
+                )}
+              >
+                {tone}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="glass rounded-2xl p-1.5 shadow-lg">
         <div className="flex items-end gap-2 p-2">
