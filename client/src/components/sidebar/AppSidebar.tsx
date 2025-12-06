@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   MessageSquare,
   History,
@@ -36,13 +36,13 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Search, label: 'Research', path: '/research' },
   { icon: FileCode, label: 'Generate', path: '/generate' },
   { icon: Shield, label: 'Audit', path: '/audit' },
-  { icon: ArrowRightLeft, label: 'Swap', path: '/swap' },
-  { icon: Send, label: 'Transfer', path: '/transfer' },
-  { icon: Coins, label: 'Stake', path: '/stake' },
-  { icon: Rocket, label: 'Deploy', path: '/deploy' },
-  { icon: Code2, label: 'Interact', path: '/interact' },
+  // { icon: ArrowRightLeft, label: 'Swap', path: '/swap' },
+  // { icon: Send, label: 'Transfer', path: '/transfer' },
+  // { icon: Coins, label: 'Stake', path: '/stake' },
+  // { icon: Rocket, label: 'Deploy', path: '/deploy' },
+  // { icon: Code2, label: 'Interact', path: '/interact' },
   { icon: History, label: 'History', path: '/history' },
-  { icon: BookOpen, label: 'Docs', path: '/docs' },
+  // { icon: BookOpen, label: 'Docs', path: '/docs' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
@@ -74,6 +74,7 @@ function SidebarContent({ collapsed = false, onNavigate }: { collapsed?: boolean
       <div className="px-3 pb-3 mt-2">
         <Tooltip>
           <TooltipTrigger asChild>
+           <Link to={"/"}>
             <Button
               variant="outline"
               className={cn(
@@ -84,6 +85,7 @@ function SidebarContent({ collapsed = false, onNavigate }: { collapsed?: boolean
               <Plus className="h-4 w-4" />
               {!collapsed && <span>New Chat</span>}
             </Button>
+           </Link>
           </TooltipTrigger>
           {collapsed && <TooltipContent side="right">New Chat</TooltipContent>}
         </Tooltip>

@@ -130,9 +130,9 @@ export default function Index() {
 
               <QuickActions onSelect={handleSend} />
 
-              <div className="mt-8 md:mt-12 w-full max-w-2xl px-2">
+              {/* <div className="mt-8 md:mt-12 w-full max-w-2xl px-2">
                 <ChatInput onSend={handleSend} disabled={isLoading} />
-              </div>
+              </div> */}
             </div>
           ) : (
             // Chat View
