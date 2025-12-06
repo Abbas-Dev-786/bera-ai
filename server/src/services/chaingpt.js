@@ -63,6 +63,9 @@ export async function auditContract(source) {
         // sdkUniqueId: "",
       },
       { responseType: "json" });
+
+
+
     return res.data;
   } catch (error) {
     console.error("ChainGPT auditContract error:", error.message);

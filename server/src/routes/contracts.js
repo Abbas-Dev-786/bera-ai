@@ -5,6 +5,7 @@ import {
 } from "../services/chaingpt.js";
 import { ContractArtifact } from "../models/ContractArtifact.js";
 import { AuditResult } from "../models/AuditResult.js";
+import { getScoreAndSummary } from "../services/gpt.js";
 
 const router = express.Router();
 
@@ -175,8 +176,11 @@ router.post("/audit", async (req, res, next) => {
     }
 
     const data = await auditContract(contractSource);
-    // const summary = (data?.summary || "").slice(0, 2000);
-    const score = data?.score ?? null;
+
+    const { score, summary } = await getScoreAndSummary(data);
+
+    console.log("score", score);
+    console.log("summary", summary);
 
     const record = await AuditResult.create({
       report: data,
