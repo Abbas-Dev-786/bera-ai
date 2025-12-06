@@ -79,6 +79,7 @@ export interface GeneratedContract {
 
 export interface ContractAudit {
   auditId: string;
+  artifactId?: string;
   summary: string;
   score: number | null;
   report: unknown;

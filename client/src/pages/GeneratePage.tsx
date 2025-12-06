@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { getContracts, GeneratedContract } from '@/lib/api';
+import { getContracts, GeneratedContract, generateContract, Message } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function GeneratePage() {
@@ -99,6 +99,28 @@ export default function GeneratePage() {
     </div>
   );
 
+  const handleGenerateMessage = async (message: string) => {
+    try {
+      const contract = await generateContract(message);
+      const contractMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `I've generated a smart contract for you:\n\n\`\`\`solidity\n${contract.contract}\n\`\`\`\n\n**Contract Details:**\n- Artifact ID: ${contract.artifactId}\n- Created: ${new Date(contract.createdAt).toLocaleString()}`,
+        timestamp: new Date(),
+        type: 'code',
+        metadata: {
+          contractAddress: contract.artifactId,
+        },
+      };
+      // Reload contracts list
+      await loadContracts();
+      return { message: contractMessage };
+    } catch (error) {
+      console.error('Contract generation failed:', error);
+      throw error; // Let ChatView handle the error toast
+    }
+  };
+
   return (
     <MainLayout>
       <ChatView 
@@ -120,6 +142,7 @@ export default function GeneratePage() {
           { label: "Crowdfunding", text: "Create a crowdfunding contract" },
           { label: "Staking", text: "Write a staking contract for ERC-20" }
         ]}
+        onProcessMessage={handleGenerateMessage}
       />
     </MainLayout>
   );

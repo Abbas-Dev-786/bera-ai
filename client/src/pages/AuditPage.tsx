@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { getAudits, ContractAudit } from '@/lib/api';
+import { getAudits, ContractAudit, runContractAudit, Message } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function AuditPage() {
@@ -96,12 +96,61 @@ export default function AuditPage() {
     </div>
   );
 
+  const handleAuditMessage = async (message: string) => {
+    // Extract contract source logic (reused from original ChatView logic, but now local to AuditPage)
+    // Check for code blocks
+    let contractSource: string | null = null;
+    const codeBlockMatch = message.match(/```(?:solidity)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      contractSource = codeBlockMatch[1].trim();
+    }
+    // If message contains substantial code-like content, use it
+    else if (message.includes('pragma') || message.includes('contract ') || message.includes('function ')) {
+      contractSource = message;
+    }
+
+    if (!contractSource) {
+      toast.info('Please provide contract source code in a code block for auditing.');
+      // Return a helper message from assistant
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: 'Please provide the contract source code you would like me to audit. You can paste it in a code block.',
+        timestamp: new Date(),
+        type: 'text'
+      };
+      return { message: assistantMessage };
+    }
+
+    try {
+      const audit = await runContractAudit({ source: contractSource });
+      const auditMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `## Audit Report\n\n**Score:** ${audit.score !== null ? `${audit.score}/100` : 'N/A'}\n\n**Summary:**\n${audit.summary}\n\n**Full Report:**\n\`\`\`json\n${JSON.stringify(audit.report, null, 2)}\n\`\`\``,
+        timestamp: new Date(),
+        type: 'audit',
+        metadata: {
+          auditScore: audit.score,
+          riskLevel: audit.score !== null ? (audit.score >= 80 ? 'low' : audit.score >= 60 ? 'medium' : 'high') : 'medium',
+        },
+      };
+      
+      // Reload audits list
+      await loadAudits();
+      return { message: auditMessage };
+    } catch (error) {
+      console.error('Audit failed:', error);
+      throw error;
+    }
+  };
+
   return (
     <MainLayout>
       <ChatView 
         title="Smart Contract Audit"
         subtitle="Analyze code for vulnerabilities"
-        placeholder="Example: Audit 0x..."
+        placeholder="Example: Paste contract code to audit..."
         initialItems={[{
           type: 'message',
           data: {
@@ -117,6 +166,7 @@ export default function AuditPage() {
           { label: "Check Security", text: "Check for reentrancy vulnerabilities" },
           { label: "Gas Optimization", text: "How can I optimize gas usage?" }
         ]}
+        onProcessMessage={handleAuditMessage}
       />
     </MainLayout>
   );

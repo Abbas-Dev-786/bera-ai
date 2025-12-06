@@ -4,7 +4,7 @@ import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput, ChatSuggestion } from '@/components/chat/ChatInput';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { ActionCard, ActionData, ActionStatus } from '@/components/chat/ActionCard';
-import { sendChatMessage, Message, generateContract, runContractAudit } from '@/lib/api';
+import { sendChatMessage, Message, ActionData as ApiActionData } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { MobileMenuTrigger } from '@/components/sidebar/AppSidebar';
@@ -22,6 +22,7 @@ interface ChatViewProps {
   placeholder?: string;
   sidePanel?: React.ReactNode;
   suggestions?: ChatSuggestion[];
+  onProcessMessage?: (message: string) => Promise<{ message: Message; action?: ActionData }>;
   showToneSelector?: boolean;
 }
 
@@ -32,6 +33,7 @@ export function ChatView({
   placeholder = "Type a message...",
   sidePanel,
   suggestions,
+  onProcessMessage,
   showToneSelector = false
 }: ChatViewProps) {
   const [chatItems, setChatItems] = useState<ChatItem[]>(initialItems);
@@ -47,60 +49,6 @@ export function ChatView({
     scrollToBottom();
   }, [chatItems, isLoading]);
 
-  // Detect if message is requesting contract generation
-  const isContractGenerationRequest = (text: string): boolean => {
-    const lower = text.toLowerCase();
-    // More comprehensive detection patterns
-    const patterns = [
-      // "generate contract" patterns
-      /generate.*(?:contract|solidity|smart\s+contract)/i,
-      /create.*(?:contract|solidity|smart\s+contract)/i,
-      /write.*(?:contract|solidity|smart\s+contract)/i,
-      /build.*(?:contract|solidity|smart\s+contract)/i,
-      // Contract type patterns
-      /(?:erc-?20|erc-?721|erc-?1155|token|nft).*contract/i,
-      // Direct requests
-      /(?:contract|solidity).*generate/i,
-      /(?:contract|solidity).*create/i,
-    ];
-    
-    return patterns.some(pattern => pattern.test(text));
-  };
-
-  // Detect if message is requesting contract audit
-  const isAuditRequest = (text: string): boolean => {
-    const lower = text.toLowerCase();
-    return (
-      lower.includes('audit') || 
-      lower.includes('security check') ||
-      lower.includes('check for vulnerabilities')
-    );
-  };
-
-  // Extract contract source from message (looks for code blocks or contract addresses)
-  const extractContractSource = (text: string): string | null => {
-    // Check for code blocks
-    const codeBlockMatch = text.match(/```(?:solidity)?\s*([\s\S]*?)```/);
-    if (codeBlockMatch) {
-      return codeBlockMatch[1].trim();
-    }
-    
-    // Check for contract address (0x...)
-    const addressMatch = text.match(/0x[a-fA-F0-9]{40}/);
-    if (addressMatch) {
-      // For now, return null as we'd need to fetch from blockchain
-      // This could be enhanced later
-      return null;
-    }
-    
-    // If message contains substantial code-like content, use it
-    if (text.includes('pragma') || text.includes('contract ') || text.includes('function ')) {
-      return text;
-    }
-    
-    return null;
-  };
-
   const handleSend = async (content: string) => {
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -113,67 +61,20 @@ export function ChatView({
     setIsLoading(true);
 
     try {
-      // Check for contract generation request FIRST
-      if (isContractGenerationRequest(content)) {
-        try {
-          const contract = await generateContract(content);
-          const contractMessage: Message = {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: `I've generated a smart contract for you:\n\n\`\`\`solidity\n${contract.contract}\n\`\`\`\n\n**Contract Details:**\n- Artifact ID: ${contract.artifactId}\n- Created: ${new Date(contract.createdAt).toLocaleString()}`,
-            timestamp: new Date(),
-            type: 'code',
-            metadata: {
-              contractAddress: contract.artifactId,
-            },
-          };
-          setChatItems((prev) => [...prev, { type: 'message', data: contractMessage }]);
-          toast.success('Contract generated successfully!');
-          setIsLoading(false);
-          return;
-        } catch (error) {
-          console.error('Contract generation failed:', error);
-          toast.error('Failed to generate contract. Please try again.');
-          setIsLoading(false);
-          return; // Return early to prevent falling through to sendChatMessage
-        }
+      let response: { message: Message; action?: ActionData };
+
+      if (onProcessMessage) {
+        // Use the provided custom handler
+        response = await onProcessMessage(content);
+      } else {
+        // Default: send to chat agent
+        const chatRes = await sendChatMessage(content, undefined, selectedTone);
+        response = {
+          message: chatRes.message,
+          action: chatRes.action as ActionData | undefined
+        };
       }
 
-      // Check for audit request
-      if (isAuditRequest(content)) {
-        const contractSource = extractContractSource(content);
-        if (contractSource) {
-          try {
-            const audit = await runContractAudit({ source: contractSource });
-            const auditMessage: Message = {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: `## Audit Report\n\n**Score:** ${audit.score !== null ? `${audit.score}/100` : 'N/A'}\n\n**Summary:**\n${audit.summary}\n\n**Full Report:**\n\`\`\`json\n${JSON.stringify(audit.report, null, 2)}\n\`\`\``,
-              timestamp: new Date(),
-              type: 'audit',
-              metadata: {
-                auditScore: audit.score,
-                riskLevel: audit.score !== null ? (audit.score >= 80 ? 'low' : audit.score >= 60 ? 'medium' : 'high') : 'medium',
-              },
-            };
-            setChatItems((prev) => [...prev, { type: 'message', data: auditMessage }]);
-            toast.success('Audit completed!');
-            setIsLoading(false);
-            return;
-          } catch (error) {
-            console.error('Audit failed:', error);
-            toast.error('Failed to run audit. Please provide contract source code.');
-            setIsLoading(false);
-            return; // Return early to prevent falling through to sendChatMessage
-          }
-        } else {
-          // Still send to chat agent for guidance if no source code found
-          toast.info('Please provide contract source code in a code block for auditing.');
-        }
-      }
-
-      // Default: send to chat agent (only if not a contract generation or audit request)
-      const response = await sendChatMessage(content, undefined, selectedTone);
       setChatItems((prev) => [...prev, { type: 'message', data: response.message }]);
       
       if (response.action) {
@@ -181,7 +82,7 @@ export function ChatView({
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      toast.error('Failed to send message. Please try again.');
+      toast.error('Failed to process message. Please try again.');
     } finally {
       setIsLoading(false);
     }
