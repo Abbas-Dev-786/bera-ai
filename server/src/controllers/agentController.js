@@ -1,4 +1,6 @@
 import { getTopicDetails } from "../services/chaingpt.js";
+import createPrompt from "../services/gpt.js";
+
 
 /**
  * Handle general Web3 query requests using ChainGPT directly.
