@@ -92,6 +92,11 @@ export default function AuditPage() {
           }
         }]}
         sidePanel={AuditSidePanel}
+        suggestions={[
+          { label: "Audit Contract", text: "Audit this contract: [paste code]" },
+          { label: "Check Security", text: "Check for reentrancy vulnerabilities" },
+          { label: "Gas Optimization", text: "How can I optimize gas usage?" }
+        ]}
       />
     </MainLayout>
   );

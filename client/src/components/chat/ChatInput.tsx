@@ -4,13 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
+export interface ChatSuggestion {
+  label: string;
+  text: string;
+}
+
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  suggestions?: ChatSuggestion[];
 }
 
-export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, placeholder, suggestions }: ChatInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -95,30 +101,23 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
       </div>
 
       {/* Suggestions bar */}
-      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground overflow-x-auto scrollbar-none pb-1">
-        <span className="flex items-center gap-1 shrink-0">
-          <Sparkles className="h-3 w-3" />
-          Try:
-        </span>
-        <button
-          onClick={() => setInput("Explain how Uniswap V3 works")}
-          className="shrink-0 rounded-full bg-secondary/50 px-3 py-1 transition-colors hover:bg-secondary"
-        >
-          Explain protocols
-        </button>
-        <button
-          onClick={() => setInput("Generate an ERC-20 token contract")}
-          className="shrink-0 rounded-full bg-secondary/50 px-3 py-1 transition-colors hover:bg-secondary"
-        >
-          Generate contracts
-        </button>
-        <button
-          onClick={() => setInput("Swap 100 USDT for BNB")}
-          className="shrink-0 rounded-full bg-secondary/50 px-3 py-1 transition-colors hover:bg-secondary"
-        >
-          Execute swap
-        </button>
-      </div>
+      {suggestions && suggestions.length > 0 && (
+        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground overflow-x-auto scrollbar-none pb-1">
+          <span className="flex items-center gap-1 shrink-0">
+            <Sparkles className="h-3 w-3" />
+            Try:
+          </span>
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => setInput(suggestion.text)}
+              className="shrink-0 rounded-full bg-secondary/50 px-3 py-1 transition-colors hover:bg-secondary"
+            >
+              {suggestion.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

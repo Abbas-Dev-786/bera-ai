@@ -62,6 +62,11 @@ export default function ResearchPage() {
           }
         }]}
         sidePanel={ResearchSidePanel}
+        suggestions={[
+          { label: "Explain protocols", text: "Explain how Uniswap V3 works" },
+          { label: "Market Trends", text: "What are the current DeFi trends?" },
+          { label: "Token Analysis", text: "Analyze the tokenomics of DOT" }
+        ]}
       />
     </MainLayout>
   );

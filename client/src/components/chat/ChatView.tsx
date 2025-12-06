@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Zap } from 'lucide-react';
 import { ChatMessage } from '@/components/chat/ChatMessage';
-import { ChatInput } from '@/components/chat/ChatInput';
+import { ChatInput, ChatSuggestion } from '@/components/chat/ChatInput';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { ActionCard, ActionData, ActionStatus } from '@/components/chat/ActionCard';
 import { sendChatMessage, Message } from '@/lib/api';
@@ -21,6 +21,7 @@ interface ChatViewProps {
   initialItems?: ChatItem[];
   placeholder?: string;
   sidePanel?: React.ReactNode;
+  suggestions?: ChatSuggestion[];
 }
 
 export function ChatView({ 
@@ -28,7 +29,8 @@ export function ChatView({
   subtitle, 
   initialItems = [], 
   placeholder = "Type a message...",
-  sidePanel 
+  sidePanel,
+  suggestions
 }: ChatViewProps) {
   const [chatItems, setChatItems] = useState<ChatItem[]>(initialItems);
   const [isLoading, setIsLoading] = useState(false);
@@ -165,6 +167,7 @@ export function ChatView({
                 onSend={handleSend}
                 disabled={isLoading}
                 placeholder={placeholder}
+                suggestions={suggestions}
               />
             </div>
           </div>

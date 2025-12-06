@@ -107,6 +107,11 @@ export default function GeneratePage() {
           }
         }]}
         sidePanel={GenerateSidePanel}
+        suggestions={[
+          { label: "ERC-20 Token", text: "Generate an ERC-20 token named MyToken" },
+          { label: "Crowdfunding", text: "Create a crowdfunding contract" },
+          { label: "Staking", text: "Write a staking contract for ERC-20" }
+        ]}
       />
     </MainLayout>
   );
