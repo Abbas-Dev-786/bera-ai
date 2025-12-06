@@ -1,3 +1,8 @@
+
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css'; // or any other style
 import { Message } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Bot, User, AlertTriangle, CheckCircle2, Shield } from 'lucide-react';
@@ -66,152 +71,48 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
 
         <div className="prose prose-sm dark:prose-invert max-w-none">
-          <MessageContent content={message.content} />
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+            components={{
+              pre: ({ node, ...props }) => (
+                <div className="overflow-auto w-full my-2 bg-black/10 p-2 rounded-lg">
+                  <pre {...props} />
+                </div>
+              ),
+              code: ({ node, ...props }) => {
+                // @ts-expect-error - inline is passed by react-markdown but types are sometimes strict
+                const { inline, className, children, ...rest } = props;
+                if (inline) {
+                  return (
+                    <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...rest}>
+                      {children}
+                    </code>
+                  );
+                }
+                return (
+                  <code className={cn('text-sm font-mono', className)} {...rest}>
+                    {children}
+                  </code>
+                );
+              },
+              table: ({ node, ...props }) => (
+                <div className="my-4 w-full overflow-y-auto">
+                  <table className="w-full" {...props} />
+                </div>
+              ),
+              th: ({ node, ...props }) => (
+                <th className="border px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right" {...props} />
+              ),
+              td: ({ node, ...props }) => (
+                <th className="border px-4 py-2 text-left [&[align=center]]:text-center [&[align=right]]:text-right" {...props} />
+              ),
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
         </div>
       </div>
     </div>
   );
-}
-
-function MessageContent({ content }: { content: string }) {
-  // Simple markdown-like rendering
-  const lines = content.split('\n');
-  const elements: React.ReactNode[] = [];
-  let inCodeBlock = false;
-  let codeContent = '';
-  let codeLanguage = '';
-
-  lines.forEach((line, index) => {
-    // Code block handling
-    if (line.startsWith('```')) {
-      if (!inCodeBlock) {
-        inCodeBlock = true;
-        codeLanguage = line.slice(3);
-        codeContent = '';
-      } else {
-        elements.push(
-          <pre
-            key={`code-${index}`}
-            className="my-3 overflow-x-auto rounded-lg bg-secondary/50 p-4 font-mono text-sm"
-          >
-            <code className="text-foreground">{codeContent}</code>
-          </pre>
-        );
-        inCodeBlock = false;
-        codeContent = '';
-      }
-      return;
-    }
-
-    if (inCodeBlock) {
-      codeContent += (codeContent ? '\n' : '') + line;
-      return;
-    }
-
-    // Headers
-    if (line.startsWith('## ')) {
-      elements.push(
-        <h2 key={index} className="mt-4 mb-2 text-lg font-semibold">
-          {line.slice(3)}
-        </h2>
-      );
-      return;
-    }
-
-    if (line.startsWith('### ')) {
-      elements.push(
-        <h3 key={index} className="mt-3 mb-2 text-base font-semibold">
-          {line.slice(4)}
-        </h3>
-      );
-      return;
-    }
-
-    // Bold text and inline code
-    if (line.startsWith('**') && line.includes(':**')) {
-      const [label, ...rest] = line.split(':**');
-      elements.push(
-        <p key={index} className="my-1">
-          <strong>{label.slice(2)}:</strong>
-          {rest.join(':**')}
-        </p>
-      );
-      return;
-    }
-
-    // Table handling
-    if (line.startsWith('|')) {
-      // Skip separator lines
-      if (line.includes('---')) return;
-
-      const cells = line
-        .split('|')
-        .filter(Boolean)
-        .map((cell) => cell.trim());
-
-      elements.push(
-        <div
-          key={index}
-          className="grid gap-4 py-1 text-sm"
-          style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }}
-        >
-          {cells.map((cell, i) => (
-            <span
-              key={i}
-              className={i === 0 ? 'text-muted-foreground' : 'font-medium'}
-            >
-              {cell}
-            </span>
-          ))}
-        </div>
-      );
-      return;
-    }
-
-    // List items
-    if (line.startsWith('- ')) {
-      elements.push(
-        <div key={index} className="flex items-start gap-2 my-1">
-          <span className="text-primary mt-1.5">•</span>
-          <span>{formatInlineCode(line.slice(2))}</span>
-        </div>
-      );
-      return;
-    }
-
-    // Regular paragraph
-    if (line.trim()) {
-      elements.push(
-        <p key={index} className="my-2 leading-relaxed">
-          {formatInlineCode(line)}
-        </p>
-      );
-    }
-  });
-
-  return <>{elements}</>;
-}
-
-function formatInlineCode(text: string): React.ReactNode {
-  const parts = text.split(/(`[^`]+`)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return (
-        <code
-          key={i}
-          className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs"
-        >
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-    // Bold text
-    const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
-    return boldParts.map((bp, j) => {
-      if (bp.startsWith('**') && bp.endsWith('**')) {
-        return <strong key={`${i}-${j}`}>{bp.slice(2, -2)}</strong>;
-      }
-      return bp;
-    });
-  });
 }

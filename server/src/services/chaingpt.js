@@ -22,6 +22,7 @@ export async function generateContractFromSpec(spec) {
       },
       { responseType: "json" }
     );
+
     return res.data;
   } catch (error) {
     console.error("ChainGPT generateContractFromSpec error:", error.message);
@@ -42,7 +43,6 @@ export async function getTopicDetails(question) {
       { responseType: "json" }
     );
 
-    console.log("ChainGPT response:", res.data);
     // Typical response: { contract: "pragma ...", abi: [...], bytecode: "..."}
     return res.data;
   } catch (error) {
@@ -55,7 +55,14 @@ export async function auditContract(source) {
   try {
     // Assuming /audit-smart-contract based on naming convention, 
     // if fails we might need to check docs again or use the general chatbot to audit.
-    const res = await client.post("/audit-smart-contract", { contract_code: source });
+    const res = await client.post("/",
+      {
+        model: "smart_contract_auditor",
+        question: source,
+        chatHistory: "on",
+        // sdkUniqueId: "",
+      },
+      { responseType: "json" });
     return res.data;
   } catch (error) {
     console.error("ChainGPT auditContract error:", error.message);

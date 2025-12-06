@@ -150,18 +150,14 @@ router.get("/audits", async (req, res, next) => {
  */
 router.post("/audit", async (req, res, next) => {
   try {
-    const { source, artifactId } = req.body || {};
+    const { source } = req.body || {};
 
     let contractSource = source;
 
-    if (!contractSource && artifactId) {
-      const artifact = await ContractArtifact.findById(artifactId);
-      if (!artifact) {
-        return res
-          .status(404)
-          .json({ success: false, error: { message: "Artifact not found" } });
-      }
-      contractSource = artifact.solidity;
+    if (!contractSource) {
+      return res
+        .status(400)
+        .json({ success: false, error: { message: "source is required" } });
     }
 
     if (
@@ -179,11 +175,10 @@ router.post("/audit", async (req, res, next) => {
     }
 
     const data = await auditContract(contractSource);
-    const summary = (data?.summary || "").slice(0, 2000);
+    // const summary = (data?.summary || "").slice(0, 2000);
     const score = data?.score ?? null;
 
     const record = await AuditResult.create({
-      artifactId: artifactId || null,
       report: data,
       summary,
       score,

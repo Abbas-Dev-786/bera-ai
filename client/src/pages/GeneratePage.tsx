@@ -99,19 +99,84 @@ export default function GeneratePage() {
     </div>
   );
 
+  // Parse and format the contract response into proper markdown
+  const formatContractResponse = (contractContent: string): string => {
+    // Handle both escaped newlines (\n) and actual newlines
+    let formatted = contractContent;
+    
+    // If we see literal \n strings, replace them
+    if (formatted.includes('\\n')) {
+      formatted = formatted.replace(/\\n/g, '\n');
+    }
+    
+    // Split by "---" separators to identify sections
+    // Handle both "\n\n---\n\n" and "---" patterns
+    const parts = formatted.split(/\n\n---\n\n|\n---\n/);
+    
+    const processedParts: string[] = [];
+    
+    for (let i = 0; i < parts.length; i++) {
+      let part = parts[i].trim();
+      
+      // Check if this part contains the solidity code block
+      // Pattern: "solidity\n" or "solidity " followed by code
+      const solidityMatch = part.match(/^solidity\s*\n([\s\S]*)$/);
+      if (solidityMatch) {
+        const code = solidityMatch[1].trim();
+        processedParts.push(`\`\`\`solidity\n${code}\n\`\`\``);
+        continue;
+      }
+      
+      // Format section headers
+      // Convert "Overview:" to "## Overview"
+      if (part.startsWith('Overview:')) {
+        part = part.replace(/^Overview:\s*/, '## Overview\n\n');
+      }
+      
+      // Convert other section headers (at start of line)
+      part = part.replace(/^Security Considerations:/gm, '## Security Considerations');
+      part = part.replace(/^Deployment:/gm, '## Deployment');
+      part = part.replace(/^Compatibility:/gm, '## Compatibility');
+      
+      // Format bullet points consistently
+      part = part.replace(/^-\s+/gm, '- ');
+      
+      // Format sub-bullets (indented with spaces)
+      part = part.replace(/^  -\s+/gm, '  - ');
+      
+      processedParts.push(part);
+    }
+    
+    // Join with horizontal rules for visual separation
+    formatted = processedParts.join('\n\n---\n\n');
+    
+    // Clean up excessive newlines (more than 2 consecutive)
+    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+    
+    return formatted.trim();
+  };
+
   const handleGenerateMessage = async (message: string) => {
     try {
       const contract = await generateContract(message);
+      
+      // Format the contract content with proper markdown
+      const formattedContent = formatContractResponse(contract.contract);
+      
+      // Add contract metadata at the end
+      const fullContent = `${formattedContent}\n\n---\n\n## Contract Details\n\n- **Artifact ID:** \`${contract.artifactId}\`\n- **Created:** ${new Date(contract.createdAt).toLocaleString()}`;
+      
       const contractMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `I've generated a smart contract for you:\n\n\`\`\`solidity\n${contract.contract}\n\`\`\`\n\n**Contract Details:**\n- Artifact ID: ${contract.artifactId}\n- Created: ${new Date(contract.createdAt).toLocaleString()}`,
+        content: fullContent,
         timestamp: new Date(),
         type: 'code',
         metadata: {
           contractAddress: contract.artifactId,
         },
       };
+      
       // Reload contracts list
       await loadContracts();
       return { message: contractMessage };
