@@ -1,13 +1,13 @@
 import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
-import { bsc, bscTestnet } from 'wagmi/chains';
+import { bscTestnet } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import '@rainbow-me/rainbowkit/styles.css';
 
 const config = getDefaultConfig({
-  appName: 'Super Web3 Agent',
+  appName: 'BeraAI',
   projectId: 'YOUR_PROJECT_ID', // TODO: Get a project ID from WalletConnect
-  chains: [bsc, bscTestnet],
+  chains: [ bscTestnet],
   ssr: false, // If your dApp uses server side rendering (SSR)
 });
 

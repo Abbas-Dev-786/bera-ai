@@ -9,7 +9,7 @@ export function TypingIndicator() {
 
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground">
-          Web3 Agent is thinking
+          BeraAI is thinking
         </span>
         <div className="typing-indicator flex gap-1">
           <span className="h-2 w-2 rounded-full bg-primary" />

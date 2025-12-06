@@ -31,7 +31,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div className="flex-1 space-y-3 overflow-hidden">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">
-            {isUser ? 'You' : 'Web3 Agent'}
+            {isUser ? 'You' : 'BeraAI'}
           </span>
           {message.type === 'audit' && message.metadata?.auditScore && (
             <Badge
