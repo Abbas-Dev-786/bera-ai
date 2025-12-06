@@ -7,29 +7,38 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { ArrowDownUp, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { executeTransaction } from '@/lib/api';
+import { createTransactionBundle } from '@/lib/api';
+import { useAccount } from 'wagmi';
 
 export default function SwapPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [amount, setAmount] = useState('');
   const [fromToken, setFromToken] = useState('USDT');
   const [toToken, setToToken] = useState('BNB');
+  const { address } = useAccount();
 
   const handleSwap = async () => {
     if (!amount) return;
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
     
     setIsLoading(true);
     try {
-      await executeTransaction('swap', {
-        from: `${amount} ${fromToken}`,
+      const bundle = await createTransactionBundle('swap', {
+        from: address,
         to: toToken,
         amount: amount,
-        token: fromToken
+        token: fromToken,
+        slippage: 1
       });
-      toast.success('Swap executed successfully!');
+      
+      toast.success(`Swap bundle created! Bundle ID: ${bundle.bundleId.slice(0, 8)}...`);
+      toast.info('Please sign the bundle to complete the swap. Wallet signing integration pending.');
       setAmount('');
     } catch (error) {
-      toast.error('Failed to execute swap');
+      toast.error('Failed to create swap bundle');
       console.error(error);
     } finally {
       setIsLoading(false);

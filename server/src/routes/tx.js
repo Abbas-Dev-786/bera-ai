@@ -1,33 +1,25 @@
 import express from "express";
+import { ethers } from "ethers";
 import {
   createSignToPayBundle,
   submitSignedBundle,
 } from "../services/quack.js";
 import {
   getPolicy,
+  updatePolicy,
   validateActionsAgainstPolicy,
 } from "../services/policyEngine.js";
 import { Bundle } from "../models/Bundle.js";
+import { TxBuilder } from "../services/txBuilder.js";
 
 const router = express.Router();
 
 /**
  * POST /api/tx/preview
  * Create a Quack/x402 bundle and return a human-readable preview plus bundleId.
- * The actual execution happens only after /api/tx/execute with a user signature.
+ * The actual execution happens only after /api/tx/submit with a user signature.
  */
-import { TxBuilder } from "../services/txBuilder.js";
-
-/**
- * POST /api/tx/execute
- * (Note: The client calls this "execute" but it actually prepares the bundle first, 
- * then the client signs it. We might want to split this or keep it as is.
- * For now, let's make /execute do the bundle creation + return the bundleId for signing.)
- * 
- * Actually, looking at client api.ts, it calls /api/tx/execute.
- * Let's map that to creating the bundle.
- */
-router.post("/execute", async (req, res, next) => {
+router.post("/preview", async (req, res, next) => {
   try {
     const { type, from, to, amount, token, slippage } = req.body || {};
 
@@ -99,10 +91,10 @@ router.post("/execute", async (req, res, next) => {
 });
 
 /**
- * POST /api/tx/execute
+ * POST /api/tx/submit
  * Submit a user's signature to execute a previously prepared bundle.
  */
-router.post("/execute", async (req, res, next) => {
+router.post("/submit", async (req, res, next) => {
   try {
     const { bundleId, signature } = req.body || {};
 
@@ -156,6 +148,41 @@ router.get("/policy", (req, res) => {
   });
 });
 
+/**
+ * PUT /api/tx/policy
+ * Update the policy settings.
+ */
+router.put("/policy", (req, res, next) => {
+  try {
+    const { dailySpendCapUsd, perTxLimitUsd, allowedTokens, allowedContracts, testnetMode } = req.body || {};
+
+    const updates = {};
+    if (typeof dailySpendCapUsd === "number" && dailySpendCapUsd > 0) {
+      updates.dailySpendCapUsd = dailySpendCapUsd;
+    }
+    if (typeof perTxLimitUsd === "number" && perTxLimitUsd > 0) {
+      updates.perTxLimitUsd = perTxLimitUsd;
+    }
+    if (Array.isArray(allowedTokens)) {
+      updates.allowedTokens = allowedTokens;
+    }
+    if (Array.isArray(allowedContracts)) {
+      updates.allowedContracts = allowedContracts;
+    }
+    if (typeof testnetMode === "boolean") {
+      updates.testnetMode = testnetMode;
+    }
+
+    const updatedPolicy = updatePolicy(updates);
+
+    return res.status(200).json({
+      success: true,
+      data: updatedPolicy,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;
 

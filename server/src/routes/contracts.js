@@ -49,6 +49,102 @@ router.post("/generate", async (req, res, next) => {
 });
 
 /**
+ * GET /api/contracts
+ * Fetch all contract artifacts with optional pagination and filtering.
+ */
+router.get("/", async (req, res, next) => {
+  try {
+    const limit = Number.parseInt(req.query.limit, 10) || 50;
+    const skip = Number.parseInt(req.query.skip, 10) || 0;
+    const search = req.query.search;
+
+    let query = {};
+    if (search && typeof search === "string") {
+      query = {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { spec: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
+    const [contracts, total] = await Promise.all([
+      ContractArtifact.find(query)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(skip)
+        .lean(),
+      ContractArtifact.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        contracts: contracts.map((c) => ({
+          artifactId: c._id.toString(),
+          name: c.name,
+          spec: c.spec,
+          contract: c.solidity,
+          abi: c.abi,
+          bytecode: c.bytecode,
+          createdAt: c.createdAt,
+        })),
+        total,
+        limit,
+        skip,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/contracts/audits
+ * Fetch audit results with optional filtering by artifactId.
+ */
+router.get("/audits", async (req, res, next) => {
+  try {
+    const limit = Number.parseInt(req.query.limit, 10) || 50;
+    const skip = Number.parseInt(req.query.skip, 10) || 0;
+    const artifactId = req.query.artifactId;
+
+    let query = {};
+    if (artifactId && typeof artifactId === "string") {
+      query.artifactId = artifactId;
+    }
+
+    const [audits, total] = await Promise.all([
+      AuditResult.find(query)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(skip)
+        .lean(),
+      AuditResult.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        audits: audits.map((a) => ({
+          auditId: a._id.toString(),
+          artifactId: a.artifactId?.toString() || null,
+          summary: a.summary,
+          score: a.score,
+          report: a.report,
+          createdAt: a.createdAt,
+        })),
+        total,
+        limit,
+        skip,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * POST /api/contracts/audit
  * Run an AI-based audit on a solidity contract (raw source or by artifactId).
  */

@@ -7,27 +7,36 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Coins, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { executeTransaction } from '@/lib/api';
+import { createTransactionBundle } from '@/lib/api';
+import { useAccount } from 'wagmi';
 
 export default function StakePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [amount, setAmount] = useState('');
   const [token, setToken] = useState('BNB');
+  const { address } = useAccount();
 
   const handleStake = async () => {
     if (!amount) return;
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
     
     setIsLoading(true);
     try {
-      await executeTransaction('stake', {
-        amount: `${amount} ${token}`,
+      const bundle = await createTransactionBundle('stake', {
+        from: address,
+        amount: amount,
         token: token,
         protocol: 'Venus Protocol'
       });
-      toast.success('Staking transaction submitted!');
+      
+      toast.success(`Staking bundle created! Bundle ID: ${bundle.bundleId.slice(0, 8)}...`);
+      toast.info('Please sign the bundle to complete the staking. Wallet signing integration pending.');
       setAmount('');
     } catch (error) {
-      toast.error('Failed to stake tokens');
+      toast.error('Failed to create staking bundle');
       console.error(error);
     } finally {
       setIsLoading(false);

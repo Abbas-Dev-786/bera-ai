@@ -363,6 +363,74 @@ export async function runContractAudit(params: {
   return json.data as ContractAudit;
 }
 
+/**
+ * Fetch all contract artifacts.
+ * GET /api/contracts
+ */
+export async function getContracts(params?: {
+  limit?: number;
+  skip?: number;
+  search?: string;
+}): Promise<{
+  contracts: GeneratedContract[];
+  total: number;
+  limit: number;
+  skip: number;
+}> {
+  const queryParams = new URLSearchParams();
+  if (params?.limit) queryParams.append("limit", params.limit.toString());
+  if (params?.skip) queryParams.append("skip", params.skip.toString());
+  if (params?.search) queryParams.append("search", params.search);
+
+  const res = await fetch(
+    `${API_BASE_URL}/api/contracts?${queryParams.toString()}`
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Get contracts failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  return json.data;
+}
+
+/**
+ * Fetch audit results.
+ * GET /api/contracts/audits
+ */
+export async function getAudits(params?: {
+  limit?: number;
+  skip?: number;
+  artifactId?: string;
+}): Promise<{
+  audits: ContractAudit[];
+  total: number;
+  limit: number;
+  skip: number;
+}> {
+  const queryParams = new URLSearchParams();
+  if (params?.limit) queryParams.append("limit", params.limit.toString());
+  if (params?.skip) queryParams.append("skip", params.skip.toString());
+  if (params?.artifactId) queryParams.append("artifactId", params.artifactId);
+
+  const res = await fetch(
+    `${API_BASE_URL}/api/contracts/audits?${queryParams.toString()}`
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Get audits failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  return json.data;
+}
+
 function getSuggestedActions(type: string): string[] {
   switch (type) {
     case "audit":
@@ -382,11 +450,15 @@ function getSuggestedActions(type: string): string[] {
   }
 }
 
-export async function executeTransaction(
+/**
+ * Create a transaction bundle (preview) before signing.
+ * POST /api/tx/preview
+ */
+export async function createTransactionBundle(
   type: Transaction["type"],
   params: Record<string, unknown>
-): Promise<Transaction> {
-  const res = await fetch(`${API_BASE_URL}/api/tx/execute`, {
+): Promise<{ bundleId: string; status: string; txHash: string | null }> {
+  const res = await fetch(`${API_BASE_URL}/api/tx/preview`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type, ...params }),
@@ -395,18 +467,55 @@ export async function executeTransaction(
   if (!res.ok) {
     const errorText = await res.text().catch(() => "");
     throw new Error(
-      `Execute transaction failed: ${res.status} ${res.statusText} ${errorText}`
+      `Create transaction bundle failed: ${res.status} ${res.statusText} ${errorText}`
     );
   }
 
   const json = await res.json();
-  const data = json.data;
+  return json.data;
+}
+
+/**
+ * Submit a signed bundle for execution.
+ * POST /api/tx/submit
+ */
+export async function submitSignedBundle(
+  bundleId: string,
+  signature: string
+): Promise<{ bundleId: string; txHash: string; status: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/tx/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bundleId, signature }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Submit signed bundle failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  return json.data;
+}
+
+/**
+ * Execute a transaction (creates bundle, returns bundleId for signing).
+ * This is a convenience function that creates the bundle.
+ * The actual execution requires signing and calling submitSignedBundle.
+ */
+export async function executeTransaction(
+  type: Transaction["type"],
+  params: Record<string, unknown>
+): Promise<Transaction> {
+  const bundle = await createTransactionBundle(type, params);
 
   return {
-    id: data?.bundleId || crypto.randomUUID(),
+    id: bundle.bundleId,
     type,
-    status: "success",
-    hash: data?.txHash,
+    status: "pending",
+    hash: bundle.txHash || undefined,
     from: (params.from as string) || "",
     to: (params.to as string) || undefined,
     amount: (params.amount as string) || undefined,
@@ -473,11 +582,35 @@ export async function getPolicySettings(): Promise<PolicySettings> {
 export async function updatePolicySettings(
   settings: Partial<PolicySettings>
 ): Promise<PolicySettings> {
-  // Currently policy is only configurable on the backend; just merge client-side
-  const current = await getPolicySettings();
+  const res = await fetch(`${API_BASE_URL}/api/tx/policy`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      dailySpendCapUsd: settings.dailySpendCap,
+      perTxLimitUsd: settings.perTxLimit,
+      allowedTokens: settings.allowedTokens,
+      allowedContracts: settings.allowedContracts,
+      testnetMode: settings.testnetMode,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Update policy failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  const data = json?.data;
+
   return {
-    ...current,
-    ...settings,
+    dailySpendCap: data?.dailySpendCapUsd ?? 500,
+    perTxLimit: data?.perTxLimitUsd ?? 100,
+    allowedTokens: data?.allowedTokens ?? ["BNB", "USDT", "BUSD", "ETH"],
+    allowedContracts: data?.allowedContracts ?? [],
+    testnetMode: data?.testnetMode ?? true,
+    requireConfirmation: true,
   };
 }
 

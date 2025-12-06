@@ -7,30 +7,38 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { executeTransaction } from '@/lib/api';
+import { createTransactionBundle } from '@/lib/api';
+import { useAccount } from 'wagmi';
 
 export default function TransferPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [token, setToken] = useState('USDT');
+  const { address } = useAccount();
 
   const handleTransfer = async () => {
     if (!amount || !recipient) return;
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
     
     setIsLoading(true);
     try {
-      await executeTransaction('transfer', {
-        from: 'My Wallet',
+      const bundle = await createTransactionBundle('transfer', {
+        from: address,
         to: recipient,
-        amount: `${amount} ${token}`,
+        amount: amount,
         token: token
       });
-      toast.success('Transfer initiated successfully!');
+      
+      toast.success(`Transaction bundle created! Bundle ID: ${bundle.bundleId.slice(0, 8)}...`);
+      toast.info('Please sign the bundle to complete the transfer. Wallet signing integration pending.');
       setAmount('');
       setRecipient('');
     } catch (error) {
-      toast.error('Failed to execute transfer');
+      toast.error('Failed to create transfer bundle');
       console.error(error);
     } finally {
       setIsLoading(false);
