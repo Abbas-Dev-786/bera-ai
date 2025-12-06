@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env" });
 
 export const PORT = process.env.PORT || 4000;
-export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+export const OPENROUTER_API_KEY = "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";
 export const CHAINGPT_API_KEY = process.env.CHAINGPT_API_KEY;
 export const CHAINGPT_BASE =
   process.env.CHAINGPT_BASE || "https://api.chaingpt.org/chat/stream";

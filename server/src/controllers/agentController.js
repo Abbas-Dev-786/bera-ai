@@ -6,7 +6,7 @@ import { getTopicDetails } from "../services/chaingpt.js";
  */
 export async function handleAgentQuery(req, res, next) {
   try {
-    const { query } = req.body;
+    const { query, tone = "beginner" } = req.body;
 
     if (!query || typeof query !== "string" || query.trim().length === 0) {
       return res.status(400).json({
@@ -17,7 +17,8 @@ export async function handleAgentQuery(req, res, next) {
       });
     }
 
-    const result = await getTopicDetails(query);
+    const prompt = await createPrompt(query, tone)
+    const result = await getTopicDetails(prompt);
 
     // Normalise into the shape expected by the client lib (data.finalOutput)
     const finalOutput =
