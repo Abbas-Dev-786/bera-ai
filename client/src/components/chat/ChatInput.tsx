@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Mic, Sparkles } from 'lucide-react';
+import { Send, Paperclip, Mic, Sparkles, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -14,9 +14,11 @@ interface ChatInputProps {
   disabled?: boolean;
   placeholder?: string;
   suggestions?: ChatSuggestion[];
+  selectedTone?: string;
+  onToneChange?: (tone: string) => void;
 }
 
-export function ChatInput({ onSend, disabled, placeholder, suggestions }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, placeholder, suggestions, selectedTone = "beginner", onToneChange }: ChatInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -100,9 +102,35 @@ export function ChatInput({ onSend, disabled, placeholder, suggestions }: ChatIn
         </div>
       </div>
 
+      {/* Tone Selection Bar */}
+      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground overflow-x-auto scrollbar-none pb-1">
+        <span className="flex items-center gap-1 shrink-0">
+          <Settings2 className="h-3 w-3" />
+          Tone:
+        </span>
+        {['Beginner', 'Technical', 'Concise', 'ELI5'].map((tone) => {
+          const value = tone.toLowerCase();
+          const isSelected = selectedTone === value;
+          return (
+            <button
+              key={value}
+              onClick={() => onToneChange?.(value)}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1 transition-all border",
+                isSelected
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-card hover:bg-accent border-border text-muted-foreground"
+              )}
+            >
+              {tone}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Suggestions bar */}
       {suggestions && suggestions.length > 0 && (
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground overflow-x-auto scrollbar-none pb-1">
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground overflow-x-auto scrollbar-none pb-1">
           <span className="flex items-center gap-1 shrink-0">
             <Sparkles className="h-3 w-3" />
             Try:

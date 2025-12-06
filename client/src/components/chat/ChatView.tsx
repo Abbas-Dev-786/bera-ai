@@ -34,6 +34,7 @@ export function ChatView({
 }: ChatViewProps) {
   const [chatItems, setChatItems] = useState<ChatItem[]>(initialItems);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedTone, setSelectedTone] = useState("beginner");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -56,7 +57,7 @@ export function ChatView({
     setIsLoading(true);
 
     try {
-      const response = await sendChatMessage(content);
+      const response = await sendChatMessage(content, undefined, selectedTone);
       setChatItems((prev) => [...prev, { type: 'message', data: response.message }]);
       
       if (response.action) {
@@ -168,6 +169,8 @@ export function ChatView({
                 disabled={isLoading}
                 placeholder={placeholder}
                 suggestions={suggestions}
+                selectedTone={selectedTone}
+                onToneChange={setSelectedTone}
               />
             </div>
           </div>

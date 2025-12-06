@@ -278,14 +278,15 @@ function generateAction(type: string): ActionData | undefined {
 
 export async function sendChatMessage(
   message: string,
-  conversationId?: string
+  conversationId?: string,
+  tone?: string
 ): Promise<ChatResponse> {
   const res = await fetch(`${API_BASE_URL}/api/agent/query`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: message, conversationId }),
+    body: JSON.stringify({ query: message, conversationId, tone }),
   });
 
   if (!res.ok) {
