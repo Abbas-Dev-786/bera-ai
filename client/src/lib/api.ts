@@ -438,3 +438,51 @@ export async function analyzeRisk(address: string): Promise<{
     ],
   };
 }
+// ... existing exports ...
+
+/**
+ * Execute a transaction/action.
+ * Falls back to Q402 payment if required.
+ * POST /api/premium (Mock for now, will replace with specific endpoints later)
+ */
+export async function executeAction(
+  _actionId: string,
+  paymentHeader?: string
+): Promise<{ success: boolean; data: any; paymentRequired?: PaymentRequiredResponse }> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (paymentHeader) {
+    headers["x-payment"] = paymentHeader;
+  }
+
+  // Using /api/premium as the demo endpoint for "executing" an action
+  // In a real app, this would be /api/swap/execute or similar
+  const res = await fetch(`${API_BASE_URL}/api/premium`, {
+    method: "GET", // Changing to GET as per server implementation for now. ideally POST for actions.
+    headers,
+  });
+
+  if (res.status === 402) {
+    const json = await res.json();
+    return { success: false, data: null, paymentRequired: json };
+  }
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Execute action failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  return { success: true, data: json };
+}
+
+// Re-export types needed for Q402
+export interface PaymentRequiredResponse {
+  x402Version: number;
+  accepts: any[];
+  error?: string;
+}

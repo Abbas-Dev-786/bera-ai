@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Zap } from 'lucide-react';
+import { useWalletClient } from 'wagmi';
+import { createPaymentHeaderWithWallet, selectPaymentDetails } from '@/lib/q402';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput, ChatSuggestion } from '@/components/chat/ChatInput';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { ActionCard, ActionData, ActionStatus } from '@/components/chat/ActionCard';
-import { sendChatMessage, Message, ActionData as ApiActionData } from '@/lib/api';
+import { sendChatMessage, Message, ActionData as ApiActionData, executeAction } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { MobileMenuTrigger } from '@/components/sidebar/AppSidebar';
@@ -40,6 +42,8 @@ export function ChatView({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTone, setSelectedTone] = useState("beginner");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { data: walletClient } = useWalletClient();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,7 +92,8 @@ export function ChatView({
     }
   };
 
-  const handleActionApprove = (actionId: string) => {
+  const handleActionApprove = async (actionId: string) => {
+    // 1. Update status to 'executing'
     setChatItems((prev) =>
       prev.map((item) => {
         if (item.type === 'action' && (item.data as ActionData).id === actionId) {
@@ -98,17 +103,108 @@ export function ChatView({
       })
     );
 
-    setTimeout(() => {
+    try {
+      // 2. Call API to execute (might return 402)
+      let result = await executeAction(actionId);
+
+      // 3. Handle 402 Payment Required
+      if (result.paymentRequired) {
+        if (!walletClient) {
+          throw new Error("Please connect your wallet to execute this action.");
+        }
+
+        // Update status to 'signing'
+        setChatItems((prev) =>
+          prev.map((item) => {
+            if (item.type === 'action' && (item.data as ActionData).id === actionId) {
+              return { ...item, data: { ...item.data, status: 'signing' as ActionStatus } };
+            }
+            return item;
+          })
+        );
+        
+        toast.info("Please sign the payment request in your wallet...");
+
+        const paymentDetails = selectPaymentDetails(result.paymentRequired, {
+           network: "bsc-testnet" // We assume this for now
+        });
+
+        if (!paymentDetails) {
+           throw new Error("No supported payment method found in 402 response.");
+        }
+        
+        // Use walletClient.account or just use the address if account is not populated fully.
+        // Wagmi v2 walletClient.account is usually an object { address: ... } or just reference?
+        // Actually executeAction with Payment Header
+        let account = walletClient.account;
+        // If account is missing, we might need to get address from useAccount() hook really.
+        // But let's assume walletClient has it or user is connected.
+        if(!account) {
+            // Logic to get account if needed, but for now throwing error.
+             throw new Error("Wallet info missing.");
+        }
+
+        // Generate Q402 header
+        const header = await createPaymentHeaderWithWallet(walletClient, account, {
+            ...paymentDetails,
+            authorization: {
+                ...paymentDetails.authorization,
+                chainId: Number(paymentDetails.authorization.chainId), 
+                nonce: Number(paymentDetails.authorization.nonce)
+            }
+        });
+
+        // Update status back to 'executing'
+        setChatItems((prev) =>
+          prev.map((item) => {
+            if (item.type === 'action' && (item.data as ActionData).id === actionId) {
+              return { ...item, data: { ...item.data, status: 'executing' as ActionStatus } };
+            }
+            return item;
+          })
+        );
+
+        // Retry with header
+        result = await executeAction(actionId, header);
+      }
+
+      // 4. Handle Final Success/Failure
+      if (result.success) {
+        setChatItems((prev) =>
+          prev.map((item) => {
+            if (item.type === 'action' && (item.data as ActionData).id === actionId) {
+              return { 
+                ...item, 
+                data: { 
+                  ...item.data, 
+                  status: 'completed' as ActionStatus,
+                  details: {
+                      ...item.data.details,
+                      txHash: result.data.payment?.txHash || result.data.message || "Confirmed"
+                  }
+                } 
+              };
+            }
+            return item;
+          })
+        );
+        toast.success('Transaction executed successfully!');
+      } else {
+        throw new Error("Execution outcome unknown.");
+      }
+
+    } catch (error: any) {
+      console.error("Execution failed:", error);
       setChatItems((prev) =>
         prev.map((item) => {
           if (item.type === 'action' && (item.data as ActionData).id === actionId) {
-            return { ...item, data: { ...item.data, status: 'completed' as ActionStatus } };
+            return { ...item, data: { ...item.data, status: 'failed' as ActionStatus } };
           }
-          return item;
+           return item;
         })
       );
-      toast.success('Transaction executed successfully!');
-    }, 2000);
+      toast.error(error.message || 'Transaction failed');
+    }
   };
 
   const handleActionReject = (actionId: string) => {

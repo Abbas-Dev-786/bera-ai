@@ -2,6 +2,11 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
+import { bscTestnet } from "viem/chains";
+import { createQ402Middleware } from "./middleware/q402/index.js";
+
 import { PORT } from "./config/index.js";
 import { connectDB } from "./config/db.js";
 import { validateEnv } from "./utils/validateEnv.js";
@@ -25,6 +30,43 @@ app.use("/api/agent", agentRoutes);
 app.use("/api/contracts", contractsRoutes);
 app.use("/api/tx", txRoutes);
 app.use("/api/logs", logsRoutes);
+
+// Q402 Configuration
+const sponsorKey = process.env.SPONSOR_KEY || generatePrivateKey(); // Use env or random for demo
+const account = privateKeyToAccount(sponsorKey);
+
+const walletClient = createWalletClient({
+  account,
+  chain: bscTestnet,
+  transport: http(),
+});
+
+// Q402 Middleware
+app.use(
+  createQ402Middleware({
+    network: "bsc-testnet",
+    recipientAddress: "0x0000000000000000000000000000000000000000", // Replace with real treasury
+    implementationContract: "0x0000000000000000000000000000000000000000", // Replace with real implementation
+    verifyingContract: "0x0000000000000000000000000000000000000000", // Replace with real verifying
+    walletClient,
+    endpoints: [
+      {
+        path: "/api/premium",
+        amount: "1000000000000000000", // 1 BNB (Wei) - example amount
+        token: "0x0000000000000000000000000000000000000000", // Native BNB or Token Address
+        description: "Premium API access",
+      },
+    ],
+  })
+);
+
+// Protected Route Example
+app.get("/api/premium", (req, res) => {
+  res.json({
+    message: "You have accessed premium content!",
+    payment: req.payment,
+  });
+});
 
 // Health check endpoint
 app.get("/health", (req, res) => {
