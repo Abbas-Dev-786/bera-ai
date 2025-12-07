@@ -125,14 +125,19 @@ function isValidSignature(signature) {
 
 /**
  * Validate EIP-7702 authorization format
+ * Note: chainId and nonce may be numbers or strings (serialized bigints)
  */
 function isValidAuthorization(authorization) {
     const { chainId, address, nonce, yParity, r, s } = authorization;
 
+    // Parse chainId and nonce as numbers (they may be serialized as strings from BigInt)
+    const chainIdNum = typeof chainId === 'string' ? parseInt(chainId, 10) : chainId;
+    const nonceNum = typeof nonce === 'string' ? parseInt(nonce, 10) : nonce;
+
     return !!(
-        typeof chainId === 'number' && chainId > 0 &&
+        chainIdNum > 0 &&
         typeof address === 'string' && address.startsWith('0x') && address.length === 42 &&
-        typeof nonce === 'number' && nonce >= 0 &&
+        nonceNum >= 0 &&
         typeof yParity === 'number' && (yParity === 0 || yParity === 1) &&
         typeof r === 'string' && r.startsWith('0x') && r.length === 66 &&
         typeof s === 'string' && s.startsWith('0x') && s.length === 66

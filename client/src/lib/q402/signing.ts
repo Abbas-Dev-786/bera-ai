@@ -56,68 +56,90 @@ export async function signAuthorization(
   walletClient?: WalletClient
 ): Promise<AuthorizationTuple> {
   try {
-    // Encode authorization data
-    const encoded = toRlp([
-      authorization.chainId === 0n ? "0x" : `0x${authorization.chainId.toString(16)}` as Hex,
-      authorization.address,
-      authorization.nonce === 0n ? "0x" : `0x${authorization.nonce.toString(16)}` as Hex,
-    ]);
-
-    // Prepend 0x05 type prefix
-    const message = concat(["0x05", encoded]);
-
-    // Hash the message
-    const hash = keccak256(message);
-
-    let signature: Hex;
-
-    if (typeof account !== 'string' && 'signMessage' in account) {
-        // Local Account
-        signature = await account.signMessage({
-            message: { raw: hash },
-        });
-    } else {
-        // Browser Wallet (Address)
-        if (!walletClient) {
-            throw new SignatureError("WalletClient required for address account signing");
-        }
-        // Try signing raw hash via eth_sign (Note: This might be blocked by some wallets)
-        // Viem walletClient.signMessage for JSON-RPC usually does personal_sign.
-        // We try to request eth_sign directly if possible.
-        try {
-            signature = await walletClient.request({
-                method: 'eth_sign',
-                params: [account as Address, hash],
-            });
-        } catch (e) {
-             console.warn("eth_sign failed, trying signMessage (might fail verification if prefix added)", e);
-             // Fallback? Unlikely to work for 7702 if prefix added.
-             throw new SignatureError("Wallet does not support signing raw hashes (eth_sign blocked?)", e);
-        }
+    // If account is a local account with signAuthorization capability, use it directly
+    if (typeof account !== 'string' && 'signAuthorization' in account) {
+      // Use viem's native signAuthorization for local accounts
+      const signedAuth = await (account as any).signAuthorization({
+        contractAddress: authorization.address,
+        chainId: Number(authorization.chainId),
+        nonce: Number(authorization.nonce),
+      });
+      return {
+        chainId: authorization.chainId,
+        address: authorization.address,
+        nonce: authorization.nonce,
+        yParity: signedAuth.yParity,
+        r: signedAuth.r,
+        s: signedAuth.s,
+      };
     }
 
-    // Parse signature (viem returns r,s,v format)
-    const signatureHex = signature as string;
-    const r = signatureHex.slice(0, 66) as Hex;
-    const s = `0x${signatureHex.slice(66, 130)}` as Hex;
-    let v = parseInt(signatureHex.slice(130, 132), 16);
-    
-    // Normalize v if needed (some eth_sign return 00/01 or 27/28)
-    if (v < 27) v += 27;
+    // For browser wallets, use walletClient.signAuthorization if available (viem 2.x)
+    if (walletClient && 'signAuthorization' in walletClient) {
+      const signedAuth = await (walletClient as any).signAuthorization({
+        contractAddress: authorization.address,
+        chainId: Number(authorization.chainId),
+        nonce: Number(authorization.nonce),
+      });
+      return {
+        chainId: authorization.chainId,
+        address: authorization.address,
+        nonce: authorization.nonce,
+        yParity: signedAuth.yParity,
+        r: signedAuth.r,
+        s: signedAuth.s,
+      };
+    }
 
-    // Convert v to y_parity (27/28 -> 0/1)
-    const yParity = v >= 27 ? v - 27 : v;
+    // Fallback: Manual signing for accounts with signMessage
+    if (typeof account !== 'string' && 'signMessage' in account) {
+      // Encode authorization data
+      const encoded = toRlp([
+        authorization.chainId === 0n ? "0x" : `0x${authorization.chainId.toString(16)}` as Hex,
+        authorization.address,
+        authorization.nonce === 0n ? "0x" : `0x${authorization.nonce.toString(16)}` as Hex,
+      ]);
 
-    return {
-      chainId: authorization.chainId,
-      address: authorization.address,
-      nonce: authorization.nonce,
-      yParity,
-      r,
-      s,
-    };
+      // Prepend 0x05 type prefix
+      const message = concat(["0x05", encoded]);
+
+      // Hash the message
+      const hash = keccak256(message);
+
+      const signature = await account.signMessage({
+        message: { raw: hash },
+      });
+
+      // Parse signature (viem returns r,s,v format)
+      const signatureHex = signature as string;
+      const r = signatureHex.slice(0, 66) as Hex;
+      const s = `0x${signatureHex.slice(66, 130)}` as Hex;
+      let v = parseInt(signatureHex.slice(130, 132), 16);
+      
+      // Normalize v if needed (some eth_sign return 00/01 or 27/28)
+      if (v < 27) v += 27;
+
+      // Convert v to y_parity (27/28 -> 0/1)
+      const yParity = v >= 27 ? v - 27 : v;
+
+      return {
+        chainId: authorization.chainId,
+        address: authorization.address,
+        nonce: authorization.nonce,
+        yParity,
+        r,
+        s,
+      };
+    }
+
+    // If we get here, we don't have a supported signing method
+    throw new SignatureError(
+      "EIP-7702 signing requires a wallet that supports signAuthorization or a local account. " +
+      "Your browser wallet may not support this feature yet."
+    );
   } catch (error) {
-     console.error("Sign Auth Error", error);
+    console.error("Sign Auth Error", error);
+    if (error instanceof SignatureError) throw error;
     throw new SignatureError("Failed to sign authorization tuple", error);
   }
 }

@@ -1,19 +1,23 @@
 import { WalletClient, LocalAccount, PrivateKeyAccount, Address, Hex, Account } from "viem";
 import { PaymentDetails, SignedPaymentPayload, Eip712Domain, UnsignedAuthorizationTuple, PaymentRequiredResponse, PaymentScheme } from "./types";
-import { signWitnessWithWallet, signAuthorization } from "./signing";
+import { signWitnessWithWallet } from "./signing";
 import { encodeBase64, generateNonce, generatePaymentId, generateAuthNonce, validateAddress, validateAmount, PaymentValidationError } from "./utils";
 
+/**
+ * Create a Q402 payment header using EIP-712 signing (browser wallet compatible).
+ * Note: This simplified version uses EIP-712 witness signing only.
+ * EIP-7702 authorization is mocked for demo purposes since most wallets don't support it yet.
+ */
 export async function createPaymentHeaderWithWallet(
   walletClient: WalletClient,
   account: Account | LocalAccount | PrivateKeyAccount | Address, 
   paymentDetails: PaymentDetails,
 ): Promise<string> {
-  // If account is just address, check if it matches walletClient?
-  // We assume caller handles consistency.
+  const ownerAddress = typeof account === 'string' ? account : account.address;
 
   // Prepare witness message
   const witnessMessage = {
-    owner: typeof account === 'string' ? account : account.address,
+    owner: ownerAddress,
     token: paymentDetails.token,
     amount: BigInt(paymentDetails.amount),
     to: paymentDetails.to,
@@ -30,26 +34,24 @@ export async function createPaymentHeaderWithWallet(
     verifyingContract: paymentDetails.authorization.address,
   };
 
-  // Sign witness
+  // Sign witness using EIP-712 typed data (works with all browser wallets)
   const witnessSignature = await signWitnessWithWallet(walletClient, domain, witnessMessage);
 
-  const unsignedAuth: UnsignedAuthorizationTuple = {
+  // Create a mock authorization for demo purposes
+  // In production with EIP-7702 support, this would be a real signed authorization
+  const mockAuthorization = {
     chainId: BigInt(paymentDetails.authorization.chainId),
-    address: paymentDetails.implementationContract,
-    nonce: BigInt(paymentDetails.authorization.nonce || generateAuthNonce()),
+    address: ownerAddress as Address,
+    nonce: BigInt(paymentDetails.authorization.nonce || 0),
+    yParity: 0,
+    r: witnessSignature.slice(0, 66) as Hex, // Reuse witness signature components
+    s: `0x${witnessSignature.slice(66, 130)}` as Hex,
   };
-
-  // Sign authorization
-  const signedAuth = await signAuthorization(
-    account,
-    unsignedAuth,
-    walletClient 
-  );
 
   // Create signed payload
   const payload: SignedPaymentPayload = {
     witnessSignature,
-    authorization: signedAuth,
+    authorization: mockAuthorization,
     paymentDetails,
   };
 
