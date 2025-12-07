@@ -336,6 +336,35 @@ export async function executeTransaction(
   };
 }
 
+
+
+/**
+ * Create a deployment transaction bundle.
+ */
+export async function deployContractTx(
+  contract: GeneratedContract,
+  args: any[] = []
+): Promise<Transaction> {
+  const bundle = await createTransactionBundle("deploy", {
+    bytecode: contract.bytecode,
+    abi: contract.abi,
+    args: args,
+  });
+
+  return {
+    id: bundle.bundleId,
+    type: "deploy",
+    status: "pending",
+    hash: bundle.txHash || undefined,
+    from: "", // Will be filled by context or ignored in preview
+    to: undefined,
+    amount: "0",
+    token: "BNB",
+    timestamp: new Date(),
+    gasUsed: undefined,
+  };
+}
+
 export async function getTransactionHistory(): Promise<Transaction[]> {
   const res = await fetch(`${API_BASE_URL}/api/logs`);
 

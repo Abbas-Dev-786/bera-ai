@@ -74,4 +74,21 @@ export const TxBuilder = {
   },
 
   getRouterAddress: () => PANCAKESWAP_ROUTER,
+
+  /**
+   * Encode Contract Deployment data
+   */
+  encodeDeploy: (bytecode, abi, args = []) => {
+    if (!bytecode) throw new Error("Bytecode is required for deployment");
+
+    // If we have ABI and args, we use ContractFactory to encode constructor args
+    if (abi && args.length > 0) {
+      const factory = new ethers.ContractFactory(abi, bytecode);
+      return factory.getDeployTransaction(...args).data;
+    }
+
+    // If no args needed (or no ABI provided), return bytecode as-is
+    // Ensure it starts with 0x
+    return bytecode.startsWith("0x") ? bytecode : "0x" + bytecode;
+  },
 };

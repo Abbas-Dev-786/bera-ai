@@ -57,6 +57,15 @@ router.post("/preview", async (req, res, next) => {
         value: "0",
         data: "0x", // TODO: Real swap encoding
       });
+    } else if (type === "deploy") {
+      // Contract Deployment
+      const { bytecode, abi, args } = req.body;
+      const data = TxBuilder.encodeDeploy(bytecode, abi, args);
+      actions.push({
+        to: "0x", // 0x or null implies contract creation
+        value: "0",
+        data: data,
+      });
     } else if (type === "interact") {
       // Generic Contract Interaction
       // Expecting: to, value (optional), data
