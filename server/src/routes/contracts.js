@@ -203,6 +203,70 @@ router.post("/audit", async (req, res, next) => {
   }
 });
 
+
+/**
+ * POST /api/contracts/compile
+ * Attempt to compile a contract (generate ABI/Bytecode) if missing.
+ */
+router.post("/compile", async (req, res, next) => {
+  try {
+    const { artifactId } = req.body;
+
+    if (!artifactId) {
+      return res.status(400).json({ success: false, error: { message: "artifactId is required" } });
+    }
+
+    const artifact = await ContractArtifact.findById(artifactId);
+    if (!artifact) {
+      return res.status(404).json({ success: false, error: { message: "Contract not found" } });
+    }
+
+    if (artifact.bytecode && artifact.abi) {
+      // Already compiled
+      return res.status(200).json({
+        success: true,
+        data: {
+          artifactId: artifact._id.toString(),
+          contract: artifact.solidity,
+          abi: artifact.abi,
+          bytecode: artifact.bytecode,
+        },
+      });
+    }
+
+    // Call "compile"
+    // Use the service directly (ensure it's exported)
+    // Dynamic import to avoid circular dependencies if any, though likely not needed if imported at top.
+    // For safety, we keep using dynamic import or add it to top-level imports if easy.
+    const service = await import("../services/chaingpt.js");
+
+    // Check if function exists
+    if (!service.compileContract) {
+      throw new Error("compileContract function missing in service");
+    }
+
+    const data = await service.compileContract(artifact.solidity);
+
+    // Update artifact
+    if (data.abi) artifact.abi = data.abi;
+    if (data.bytecode) artifact.bytecode = data.bytecode;
+    await artifact.save();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        artifactId: artifact._id.toString(),
+        contract: artifact.solidity,
+        abi: artifact.abi,
+        bytecode: artifact.bytecode,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 export default router;
 
 

@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: ".env" });
 
-export const PORT = process.env.PORT || 4000;
+export const PORT = process.env.PORT || 8000;
 export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 export const CHAINGPT_API_KEY = process.env.CHAINGPT_API_KEY;
 export const CHAINGPT_BASE =

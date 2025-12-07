@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export interface Message {
   id: string;
@@ -142,6 +142,28 @@ export async function generateContract(
     const errorText = await res.text().catch(() => "");
     throw new Error(
       `Generate contract failed: ${res.status} ${res.statusText} ${errorText}`
+    );
+  }
+
+  const json = await res.json();
+  return json.data as GeneratedContract;
+}
+
+/**
+ * Compile a contract (generate ABI/Bytecode) if missing.
+ * POST /api/contracts/compile
+ */
+export async function compileContract(artifactId: string): Promise<GeneratedContract> {
+  const res = await fetch(`${API_BASE_URL}/api/contracts/compile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ artifactId }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `Compile contract failed: ${res.status} ${res.statusText} ${errorText}`
     );
   }
 

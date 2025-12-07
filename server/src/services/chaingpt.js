@@ -30,6 +30,26 @@ export async function generateContractFromSpec(spec) {
   }
 }
 
+export async function compileContract(source) {
+  try {
+    const res = await client.post(
+      "/",
+      {
+        model: "smart_contract_generator",
+        question: `Compile the following Solidity code and return the result in JSON format with "abi" and "bytecode" fields. Do not include any explanation. Code:\n\n${source}`,
+        chatHistory: "off",
+      },
+      { responseType: "json" }
+    );
+
+    // Expecting { contract: ..., abi: [...], bytecode: "0x..." }
+    return res.data;
+  } catch (error) {
+    console.error("ChainGPT compileContract error:", error.message);
+    throw error;
+  }
+}
+
 export async function getTopicDetails(question) {
   try {
     const res = await client.post(
