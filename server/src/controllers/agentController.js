@@ -1,5 +1,6 @@
 import { getTopicDetails } from "../services/chaingpt.js";
 import createPrompt from "../services/gpt.js";
+import { QueryLog } from "../models/QueryLog.js";
 
 
 /**
@@ -25,6 +26,13 @@ export async function handleAgentQuery(req, res, next) {
     // Normalise into the shape expected by the client lib (data.finalOutput)
     const finalOutput =
       typeof result === "string" ? result : JSON.stringify(result);
+
+    await QueryLog.create({
+      query,
+      tone,
+      response: finalOutput,
+      status: "success",
+    });
 
     res.status(200).json({
       success: true,

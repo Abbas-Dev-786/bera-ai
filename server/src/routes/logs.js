@@ -1,6 +1,7 @@
 import express from "express";
 import { AuditResult } from "../models/AuditResult.js";
 import { Bundle } from "../models/Bundle.js";
+import { QueryLog } from "../models/QueryLog.js";
 
 const router = express.Router();
 
@@ -12,9 +13,10 @@ router.get("/", async (req, res, next) => {
   try {
     const limit = Number.parseInt(req.query.limit, 10) || 20;
 
-    const [audits, bundles] = await Promise.all([
+    const [audits, bundles, queries] = await Promise.all([
       AuditResult.find().sort({ createdAt: -1 }).limit(limit),
       Bundle.find().sort({ createdAt: -1 }).limit(limit),
+      QueryLog.find().sort({ createdAt: -1 }).limit(limit),
     ]);
 
     const items = [
@@ -32,6 +34,12 @@ router.get("/", async (req, res, next) => {
         bundleId: b.bundleId,
         status: b.status,
         txHash: b.txHash,
+      })),
+      ...queries.map((q) => ({
+        type: "query",
+        id: q._id.toString(),
+        createdAt: q.createdAt,
+        summary: q.query,
       })),
     ].sort(
       (a, b) =>

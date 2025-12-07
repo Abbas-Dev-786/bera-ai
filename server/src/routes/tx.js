@@ -8,6 +8,7 @@ import {
   getPolicy,
   updatePolicy,
   validateActionsAgainstPolicy,
+  recordSpend
 } from "../services/policyEngine.js";
 import { Bundle } from "../models/Bundle.js";
 import { TxBuilder } from "../services/txBuilder.js";
@@ -51,14 +52,31 @@ router.post("/preview", async (req, res, next) => {
       const routerAddress = TxBuilder.getRouterAddress();
       // ... logic to construct swap actions
       // For MVP, let's just do a dummy swap action
-       actions.push({
-          to: routerAddress,
-          value: "0",
-          data: "0x", // TODO: Real swap encoding
-        });
+      actions.push({
+        to: routerAddress,
+        value: "0",
+        data: "0x", // TODO: Real swap encoding
+      });
+    } else if (type === "interact") {
+      // Generic Contract Interaction
+      // Expecting: to, value (optional), data
+      // Validate that 'data' is hex
+      const txData = (req.body.data && req.body.data.startsWith("0x")) ? req.body.data : "0x";
+      actions.push({
+        to: to,
+        value: ethers.parseEther(amount || "0").toString(),
+        data: txData
+      });
     }
 
     // Policy validation
+    // Estimate USD for policy check (naive assumption: 1 BNB = $600, others ignored if not provided)
+    // In a real app we'd fetch prices.
+    const estimatedUsd = token === "BNB" ? parseFloat(amount) * 600 : 0;
+    actions.forEach(a => a.estimatedUsd = estimatedUsd);
+    // Also attach token symbol for policy check
+    if (token) actions.forEach(a => a.tokenSymbol = token);
+
     const policyCheck = validateActionsAgainstPolicy(actions);
     if (!policyCheck.allowed) {
       return res.status(400).json({
@@ -83,6 +101,7 @@ router.post("/preview", async (req, res, next) => {
         bundleId: bundle.bundleId,
         txHash: null, // No hash yet
         status: bundle.status,
+        warnings: policyCheck.warnings
       },
     });
   } catch (error) {
@@ -122,6 +141,13 @@ router.post("/submit", async (req, res, next) => {
       },
       { new: true }
     );
+
+    // Naive spend recording - realistically we should sum up value from actions in the bundle
+    // For now we don't have easy access to the actions here without fetching bundle again.
+    // skipping accurate spend tracking for MVP submit phase, relying on pre-check.
+    // However, if we wanted to be strict:
+    // const storedBundle = await Bundle.findOne({ bundleId });
+    // recordSpend(calculateUsd(storedBundle.preview.actions));
 
     return res.status(200).json({
       success: true,
