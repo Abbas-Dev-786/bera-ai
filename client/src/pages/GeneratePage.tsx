@@ -110,18 +110,13 @@ export default function GeneratePage() {
         }
       }
 
+      let actionData: ActionData;
+
       try {
         const transaction = await deployContractTx(contract, []);
         
-        return {
-          message: {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: `I've prepared the deployment transaction for contract ${contract.artifactId.slice(0, 8)}... \n\nPlease review and sign the transaction below.`,
-            timestamp: new Date(),
-            type: 'text'
-          },
-          action: {
+        // Map Transaction to ActionData
+        actionData = {
             id: transaction.id,
             type: 'deploy',
             status: 'pending',
@@ -133,19 +128,23 @@ export default function GeneratePage() {
             },
             riskLevel: 'low',
             timestamp: new Date()
-          }
         };
-      } catch (error: any) {
-        return {
-          message: {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: `Failed to prepare deployment: ${error.message}`,
-            timestamp: new Date(),
-            type: 'error'
-          }
-        };
+      } catch (error) {
+        console.warn("Server deployment failed, using local fallback", error);
+        const { createLocalDeployAction } = await import('@/lib/api');
+        actionData = createLocalDeployAction(contract, []);
       }
+
+      return {
+        message: {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `I've prepared the deployment transaction for contract ${contract.artifactId.slice(0, 8)}... \n\nPlease review and sign the transaction below.`,
+          timestamp: new Date(),
+          type: 'text'
+        },
+        action: actionData
+      };
     }
 
     // Default: Generation logic

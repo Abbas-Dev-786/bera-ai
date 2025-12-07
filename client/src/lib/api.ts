@@ -45,6 +45,7 @@ export interface PolicySettings {
   requireConfirmation: boolean;
 }
 
+// ... types ...
 export interface ActionData {
   id: string;
   type: "swap" | "transfer" | "stake" | "deploy" | "interact";
@@ -58,10 +59,86 @@ export interface ActionData {
   title: string;
   description: string;
   details: Record<string, string>;
+  
+  // New field for client-side execution data (e.g. contract ABI/Bytecode)
+  payload?: any; 
+
   riskLevel: "low" | "medium" | "high";
   estimatedGas?: string;
   timestamp: Date;
 }
+// ...
+/**
+ * Create a client-side deployment action object (skipping server bundling).
+ */
+export function createLocalDeployAction(
+  contract: GeneratedContract,
+  args: any[] = []
+): ActionData {
+  return {
+    id: crypto.randomUUID(),
+    type: "deploy",
+    status: "pending",
+    title: "Deploy Contract",
+    description: `Deploying contract ${contract.artifactId.slice(0, 8)}...`,
+    details: {
+      "Bytecode Size": `${contract.bytecode?.length ? contract.bytecode.length / 2 : 0} bytes`,
+      "Network": "BNB Testnet",
+      "Strategy": "Client-Side (Direct)"
+    },
+    payload: {
+       abi: contract.abi,
+       bytecode: contract.bytecode,
+       args: args
+    },
+    riskLevel: "low",
+    timestamp: new Date()
+  };
+}
+
+/**
+ * Create a deployment transaction bundle.
+ */
+export async function deployContractTx(
+  contract: GeneratedContract,
+  args: any[] = []
+): Promise<Transaction | ActionData> {
+   // FALLBACK: Since Quack API might be down, we return a local action object directly
+   // This allows the UI to handle it with wagmi/viem directly.
+   // We wrap it to look like what the UI expects (ActionData) but the function signature returned Transaction before.
+   // I need to be careful with types. The pages expect Transaction or ActionData depending on usage.
+   // Let's keep this function signature returning Transaction for backward compat if possible, 
+   // BUT 'GeneratePage' uses it to create an 'ActionData' essentially.
+   // Actually, 'GeneratePage' maps the result to 'ActionData'.
+   
+   // Let's try server first, if fail, fallback?
+   try {
+      const bundle = await createTransactionBundle("deploy", {
+        bytecode: contract.bytecode,
+        abi: contract.abi,
+        args: args,
+      });
+
+      return {
+        id: bundle.bundleId,
+        type: "deploy",
+        status: "pending",
+        hash: bundle.txHash || undefined,
+        from: "", 
+        to: undefined,
+        amount: "0",
+        token: "BNB",
+        timestamp: new Date(),
+        gasUsed: undefined,
+      };
+   } catch (error) {
+       console.warn("Server side bundling failed, falling back to local action", error);
+       // We throw normally, OR we return a special object that the Page converts.
+       // But 'deployContractTx' returns 'Transaction'. 'ActionData' is different.
+       throw error; 
+   }
+}
+
 
 export interface ChatResponse {
   message: Message;
@@ -360,32 +437,7 @@ export async function executeTransaction(
 
 
 
-/**
- * Create a deployment transaction bundle.
- */
-export async function deployContractTx(
-  contract: GeneratedContract,
-  args: any[] = []
-): Promise<Transaction> {
-  const bundle = await createTransactionBundle("deploy", {
-    bytecode: contract.bytecode,
-    abi: contract.abi,
-    args: args,
-  });
 
-  return {
-    id: bundle.bundleId,
-    type: "deploy",
-    status: "pending",
-    hash: bundle.txHash || undefined,
-    from: "", // Will be filled by context or ignored in preview
-    to: undefined,
-    amount: "0",
-    token: "BNB",
-    timestamp: new Date(),
-    gasUsed: undefined,
-  };
-}
 
 export async function getTransactionHistory(): Promise<Transaction[]> {
   const res = await fetch(`${API_BASE_URL}/api/logs`);

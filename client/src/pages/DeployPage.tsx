@@ -62,29 +62,42 @@ export default function DeployPage() {
       }
 
       if (!contract.bytecode) {
-        return {
-          message: {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: `The contract "${contract.artifactId.slice(0, 8)}..." does not have compiled bytecode. Please go to the Generate page and compile it first (or regenerate).`,
-            timestamp: new Date(),
-            type: 'text'
+        // Auto-compile capability
+        try {
+          toast.info("Contract missing bytecode. Auto-compiling...");
+          
+          const { compileContract } = await import('@/lib/api');
+          const compiled = await compileContract(contract.artifactId);
+          
+          if (!compiled.bytecode) {
+             throw new Error("Compilation failed to produce bytecode");
           }
-        };
+          
+          // Update local contract object temporarily
+          contract.bytecode = compiled.bytecode;
+          contract.abi = compiled.abi;
+          
+          loadContracts();
+          
+        } catch (error: any) {
+           return {
+            message: {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: `Auto-compilation failed: ${error.message}. Please try again later.`,
+              timestamp: new Date(),
+              type: 'error'
+            }
+          };
+        }
       }
+
+      let actionData: ActionData;
 
       try {
         const transaction = await deployContractTx(contract, []);
-        
-        return {
-          message: {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: `I've prepared the deployment transaction for contract ${contract.artifactId.slice(0, 8)}... \n\nPlease review and sign the transaction below.`,
-            timestamp: new Date(),
-            type: 'text'
-          },
-          action: {
+        // Map Transaction to ActionData
+        actionData = {
             id: transaction.id,
             type: 'deploy',
             status: 'pending',
@@ -96,19 +109,23 @@ export default function DeployPage() {
             },
             riskLevel: 'low',
             timestamp: new Date()
-          }
         };
-      } catch (error: any) {
-        return {
-          message: {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: `Failed to prepare deployment: ${error.message}`,
-            timestamp: new Date(),
-            type: 'error'
-          }
-        };
+      } catch (error) {
+        console.warn("Server deployment failed, using local fallback", error);
+        const { createLocalDeployAction } = await import('@/lib/api');
+        actionData = createLocalDeployAction(contract, []);
       }
+
+      return {
+        message: {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `I've prepared the deployment transaction for contract ${contract.artifactId.slice(0, 8)}... \n\nPlease review and sign the transaction below.`,
+          timestamp: new Date(),
+          type: 'text'
+        },
+        action: actionData
+      };
     }
 
     // Default response if not a recognized command

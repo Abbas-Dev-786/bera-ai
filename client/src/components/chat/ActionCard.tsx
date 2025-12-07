@@ -19,6 +19,7 @@ export interface ActionData {
   riskLevel: 'low' | 'medium' | 'high';
   estimatedGas?: string;
   timestamp: Date;
+  payload?: any;
 }
 
 interface ActionCardProps {

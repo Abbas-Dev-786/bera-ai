@@ -103,6 +103,56 @@ export function ChatView({
     );
 
     try {
+      // 1.5 Check for Client-Side Deployment
+      const actionItem = chatItems.find(item => item.type === 'action' && (item.data as ActionData).id === actionId);
+      const actionData = actionItem?.data as ActionData;
+
+      if (actionData?.type === 'deploy' && actionData.payload) {
+         if (!walletClient) {
+            throw new Error("Wallet not connected");
+         }
+         
+         // Update status to signing
+         setChatItems((prev) =>
+          prev.map((item) => {
+            if (item.type === 'action' && (item.data as ActionData).id === actionId) {
+              return { ...item, data: { ...item.data, status: 'signing' as ActionStatus } };
+            }
+            return item;
+          })
+        );
+
+         const hash = await walletClient.deployContract({
+            abi: actionData.payload.abi,
+            bytecode: actionData.payload.bytecode,
+            args: actionData.payload.args || [],
+            account: walletClient.account,
+            chain: walletClient.chain
+         });
+
+         // Success
+         setChatItems((prev) =>
+           prev.map((item) => {
+             if (item.type === 'action' && (item.data as ActionData).id === actionId) {
+               return { 
+                 ...item, 
+                 data: { 
+                   ...item.data, 
+                   status: 'completed' as ActionStatus,
+                   details: {
+                       ...item.data.details,
+                       txHash: hash
+                   }
+                 } 
+               };
+             }
+             return item;
+           })
+         );
+         toast.success('Contract deployed successfully!');
+         return;
+      }
+
       // 2. Call API to execute (might return 402)
       let result = await executeAction(actionId);
 
