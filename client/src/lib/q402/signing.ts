@@ -1,4 +1,4 @@
-import { Hex, WalletClient, LocalAccount, PrivateKeyAccount, toRlp, concat, keccak256, Address } from "viem";
+import { Hex, WalletClient, LocalAccount, PrivateKeyAccount, toRlp, concat, keccak256, Address, Account } from "viem";
 import { UnsignedAuthorizationTuple, AuthorizationTuple, Eip712Domain, WitnessMessage } from "./types";
 import { SignatureError } from "./utils";
 
@@ -51,7 +51,7 @@ export async function signWitnessWithWallet(
 }
 
 export async function signAuthorization(
-  account: LocalAccount | PrivateKeyAccount | Address,
+  account: Account | LocalAccount | PrivateKeyAccount | Address,
   authorization: UnsignedAuthorizationTuple,
   walletClient?: WalletClient
 ): Promise<AuthorizationTuple> {

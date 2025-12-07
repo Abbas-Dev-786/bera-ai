@@ -12,10 +12,9 @@ import { toast } from 'sonner';
 import { MobileMenuTrigger } from '@/components/sidebar/AppSidebar';
 import ConnectBtn from '../ConnectBtn';
 
-export interface ChatItem {
-  type: 'message' | 'action';
-  data: Message | ActionData;
-}
+export type ChatItem = 
+  | { type: 'message'; data: Message }
+  | { type: 'action'; data: ActionData };
 
 interface ChatViewProps {
   title: string;

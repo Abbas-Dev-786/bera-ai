@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Search,
+  Zap,
  ArrowRightLeft,
  Send,
  Coins,
@@ -33,6 +34,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { icon: MessageSquare, label: 'Chat', path: '/' },
+  { icon: Zap, label: 'Premium Demo', path: '/premium' },
   { icon: Search, label: 'Research', path: '/research' },
   { icon: FileCode, label: 'Generate', path: '/generate' },
   { icon: Shield, label: 'Audit', path: '/audit' },

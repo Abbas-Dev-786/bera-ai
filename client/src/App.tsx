@@ -19,6 +19,7 @@ import TransferPage from "./pages/TransferPage";
 import StakePage from "./pages/StakePage";
 import DeployPage from "./pages/DeployPage";
 import InteractPage from "./pages/InteractPage";
+import PremiumPage from "./pages/PremiumPage";
 
 const queryClient = new QueryClient();
 
@@ -30,9 +31,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/premium" element={<PremiumPage />} />
           <Route path="/research" element={<ResearchPage />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/audit" element={<AuditPage />} />
+          {/* ... other routes */}
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/contracts" element={<ContractsPage />} />
           <Route path="/security" element={<SecurityPage />} />

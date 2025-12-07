@@ -1,11 +1,11 @@
-import { WalletClient, LocalAccount, PrivateKeyAccount, Address, Hex } from "viem";
+import { WalletClient, LocalAccount, PrivateKeyAccount, Address, Hex, Account } from "viem";
 import { PaymentDetails, SignedPaymentPayload, Eip712Domain, UnsignedAuthorizationTuple, PaymentRequiredResponse, PaymentScheme } from "./types";
 import { signWitnessWithWallet, signAuthorization } from "./signing";
 import { encodeBase64, generateNonce, generatePaymentId, generateAuthNonce, validateAddress, validateAmount, PaymentValidationError } from "./utils";
 
 export async function createPaymentHeaderWithWallet(
   walletClient: WalletClient,
-  account: LocalAccount | PrivateKeyAccount | Address, 
+  account: Account | LocalAccount | PrivateKeyAccount | Address, 
   paymentDetails: PaymentDetails,
 ): Promise<string> {
   // If account is just address, check if it matches walletClient?
